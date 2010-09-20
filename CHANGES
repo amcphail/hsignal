@@ -1,0 +1,44 @@
+0.1.0.1:	
+		first version
+
+0.1.0.2:
+		updated to reflect hmatrix 0.9.3.0
+
+0.1.0.3:
+		added Numeric.Signal.Multichannel
+
+0.1.0.4:
+		added Numeric.Signal.EEG
+
+0.1.0.5:
+		fixed stack overflow in loadBDF by making [Double] -> Vector Double step strict
+
+0.1.1.1:
+		updated to reflect change from using hstatistics to hmatrix-gsl-stats
+		added detrend/filter/slice to Multichannel
+		changed mapConcurrently argument order
+		changed getChannels to return array
+		added mapArrayConcurrently
+		improved performance of BDF readData
+		changed BDF to store data as Floats, not Double
+
+0.1.2.1:
+		fixed mapConcurrently to wait for all threads
+		fixed Signal.detrend window sizes 
+		fixed Signal.detrend mathematics
+		fixed broadband_filter to call the correct filter (Numeric.Signal)
+		fixed signal-aux.c filter scaling error
+		fixed hilbert
+		changed Multichannel.fromList to createMultichannel to avoid name conflicts
+
+0.1.2.2:
+		changed Multichannel read/write type signature to reflect hmatrix change
+		removed haskell98 dependency
+		added resample/resize/deriv
+		removed attempt to compare against sampling of histPDF (requires random number calls -> seed/IO)
+		added Multichannel.toMatrix
+		fixed scale in pwelch
+		reflected changes in hmatrix exports
+
+0.1.2.3:
+		changes to reflect new hmatrix interface		
