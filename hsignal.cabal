@@ -1,12 +1,12 @@
 Name:               hsignal
-Version:            0.1.2.4
+Version:            0.1.2.5
 License:            BSD3
 License-file:       LICENSE
 Author:             Vivian McPhail
 Maintainer:         haskell.vivian.mcphail <at> gmail <dot> com
 Stability:          provisional
 Homepage:           http://code.haskell.org/hsignal
-Synopsis:           Signal processing
+Synopsis:           Signal processing and EEG data analysis
 Description:        
      Purely functional interface to signal processing based on hmatrix
      .                       
@@ -44,6 +44,7 @@ library
                         Numeric.Signal.EEG
     other-modules:      Numeric.Signal.Internal
                         Numeric.Signal.EEG.BDF
+
     C-sources:          lib/Numeric/Signal/signal-aux.c
 
     ghc-prof-options:   -auto
