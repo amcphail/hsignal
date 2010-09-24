@@ -49,8 +49,7 @@ import Data.Binary
 
 import Foreign.Storable
 
-import Numeric.Vector
-import Numeric.Matrix
+import Numeric.LinearAlgebra
 
 --import qualified Numeric.GSL.Fourier as F
 

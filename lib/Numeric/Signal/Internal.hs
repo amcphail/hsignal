@@ -28,8 +28,7 @@ module Numeric.Signal.Internal (
 
 import Data.Packed.Development(createVector,vec,app1,app2,app3,app4)
 --import Data.Packed.Vector
-import Numeric.Container
-import Numeric.Vector
+import Numeric.LinearAlgebra
 
 --import Numeric.LinearAlgebra.Algorithms
 --import Numeric.LinearAlgebra.Linear

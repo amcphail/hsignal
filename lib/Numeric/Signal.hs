@@ -42,8 +42,7 @@ import qualified Data.List as L
 
 --import Data.Packed.Vector
 --import Data.Packed(Container(..))
-import Numeric.Vector
-import Numeric.GSL.Vector
+import Numeric.LinearAlgebra
 
 import qualified Numeric.GSL.Fourier as F
 
@@ -205,8 +204,7 @@ analytic_power = S.complex_power
 
 -- | the phase of an analytic signal
 analytic_phase :: Vector (Complex Double) -> Vector Double
-analytic_phase v = let (r,c) = fromComplex v
-                   in vectorZipR ATan2 c r
+analytic_phase = uncurry arctan . fromComplex
 
 -----------------------------------------------------------------------------
 
