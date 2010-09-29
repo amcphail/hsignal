@@ -204,7 +204,7 @@ analytic_power = S.complex_power
 
 -- | the phase of an analytic signal
 analytic_phase :: Vector (Complex Double) -> Vector Double
-analytic_phase = uncurry arctan . fromComplex
+analytic_phase = uncurry arctan2 . fromComplex
 
 -----------------------------------------------------------------------------
 

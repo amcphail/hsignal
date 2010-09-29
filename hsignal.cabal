@@ -26,15 +26,19 @@ build-type:         Custom
 extra-source-files: configure configure.hs README INSTALL CHANGES
 extra-tmp-files:    hsignal.buildinfo
 
+flag mkl
+    description:    Link with Intel's MKL optimized libraries.
+    default:        False
+
 library
 
     Build-Depends:      base >= 3 && < 5,
                         mtl, 
                         array,
                         bytestring, storable-complex, binary,
-                        hmatrix >= 0.10.0,
-                        hmatrix-gsl-stats >= 0.1.2.4,
-                        hstatistics >= 0.2.2.3
+                        hmatrix >= 0.10.0.0,
+                        hmatrix-gsl-stats >= 0.1.2.6,
+                        hstatistics >= 0.2.2.5
 
     Extensions:         ForeignFunctionInterface
 
@@ -53,11 +57,20 @@ library
                               -fno-warn-orphans
                               -fno-warn-unused-binds
 
+    if flag(mkl)
+      if arch(x86_64)
+        extra-libraries:   gsl mkl_lapack mkl_intel_lp64 mkl_sequential mkl_core
+      else
+        extra-libraries:   gsl mkl_lapack mkl_intel mkl_sequential mkl_core
+
     if os(OSX)
         extra-lib-dirs: /opt/local/lib/
         include-dirs: /opt/local/include/
         extra-libraries: gsl
         frameworks: Accelerate
+
+    if os(windows)
+        extra-libraries: gsl-0 blas lapack
 
 -- The extra-libraries required for GSL
 -- should now be automatically detected by configure(.hs)
@@ -65,7 +78,7 @@ library
     extra-libraries:
     extra-lib-dirs:
 
-    source-repository head
-        type:     darcs
-        location: darcs get http://code.haskell.org/hsignal
+source-repository head
+    type:     darcs
+    location: http://code.haskell.org/hsignal
 
