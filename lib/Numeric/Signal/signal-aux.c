@@ -46,7 +46,7 @@ int vector_complex_convolve(int cs, const gsl_complex* c, int as, const gsl_comp
   return 0;
 }
 
-int filter(int ls, const double* l, int ks, const double* k, int vs, const double* v, int rs, double* r)
+int filter_double(int ls, const double* l, int ks, const double* k, int vs, const double* v, int rs, double* r)
 {
   if (ls > vs || ks > vs) return 2000; // BAD_SIZE
 
@@ -54,6 +54,30 @@ int filter(int ls, const double* l, int ks, const double* k, int vs, const doubl
 
   double L = l[0];
   double K = k[0];
+  
+  int N = ls - 1;
+  int M = ks - 1;
+
+  for (i = 0; i < vs; i++) {
+    r[i] = 0;
+    for (j = 0; j < N; j++) {
+      if (i - j > 0) r[i] -= (l[j+1])*v[i-j];
+    }
+    for (j = 0; j < M; j++) {
+      if (i - j > 0) r[i] += (k[j+1])*r[i-j];
+    }
+  }
+  return 0;
+}
+
+int filter_float(int ls, const float* l, int ks, const float* k, int vs, const float* v, int rs, float* r)
+{
+  if (ls > vs || ks > vs) return 2000; // BAD_SIZE
+
+  int i,j;
+
+  float L = l[0];
+  float K = k[0];
   
   int N = ls - 1;
   int M = ks - 1;
@@ -148,7 +172,16 @@ int pwelch(int w, int vs, const gsl_complex* v, int rs, double* r)
   return 0;
 }
 
-int hamming(int rs, double* r)
+int hamming_double(int rs, double* r)
+{
+  int i;
+
+  for (i = 0; i < rs; i++) r[i] = 0.54 - 0.46 * cos(2*M_PI*i/rs);
+
+  return 0;
+}
+
+int hamming_float(int rs, float* r)
 {
   int i;
 
@@ -167,7 +200,7 @@ int real_poly_complex_eval(int cs, const double* c, int zs, const gsl_complex* z
   return 0;
 } 
 
-int complex_power(int cs, const gsl_complex* c, int rs, double* r)
+int complex_power_double(int cs, const gsl_complex* c, int rs, double* r)
 {
   if (rs != cs) return 2000; // BAD_SIZE
 
@@ -179,7 +212,31 @@ int complex_power(int cs, const gsl_complex* c, int rs, double* r)
   return 0;
 }
 
-int downsample(int n, int xs, const double* x, int rs, double* r)
+int complex_power_float(int cs, const gsl_complex* c, int rs, float* r)
+{
+  if (rs != cs) return 2000; // BAD_SIZE
+
+  int i;
+
+  for (i = 0; i < cs; i++)
+    r[i] = c[i].dat[0]*c[i].dat[0] + c[i].dat[1]*c[i].dat[1];
+
+  return 0;
+}
+
+int downsample_double(int n, int xs, const double* x, int rs, double* r)
+{
+  if (rs != xs/n) return 2000; // BAD_SIZE
+  
+  int i;
+
+  for (i = 0; i < rs; i++)
+    r[i] = x[i*n];
+
+  return 0;
+}
+
+int downsample_float(int n, int xs, const float* x, int rs, float* r)
 {
   if (rs != xs/n) return 2000; // BAD_SIZE
   

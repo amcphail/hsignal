@@ -1,4 +1,6 @@
-{-# OPTIONS_GHC -fglasgow-exts #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UnicodeSyntax #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Signal
@@ -14,6 +16,8 @@
 -----------------------------------------------------------------------------
 
 module Numeric.Signal (
+                       S.Convolvable(..),
+                       S.Filterable(),
                        -- * Filtering
                        hamming,
                        pwelch,
@@ -25,9 +29,9 @@ module Numeric.Signal (
                        unwrap,
                        -- * Preprocessing
                        detrend,
-                       downsample,resize,
-                       -- * Utility functions
-                       deriv
+                       resize,
+                       downsample,
+                       deriv,
                 ) where
 
 -----------------------------------------------------------------------------
@@ -37,6 +41,9 @@ import qualified Numeric.Signal.Internal as S
 import Numeric.GSL.Fitting.Linear
  
 import Data.Complex
+import Foreign.Storable()
+
+--import Data.Function.Unicode
 
 import qualified Data.List as L
 
@@ -51,27 +58,21 @@ import Prelude hiding(filter)
 -----------------------------------------------------------------------------
 
 -- | filters the signal
-filter :: Vector Double -- ^ zero coefficients
-       -> Vector Double -- ^ pole coefficients
-       -> Int           -- ^ sampling rate
-       -> Vector Double -- ^ input signal
-       -> Vector Double -- ^ output signal
+filter :: (S.Filterable a) 
+         ⇒ Vector a   -- ^ zero coefficients
+       -> Vector a     -- ^ pole coefficients
+       -> Int   -- ^ sampling rate
+       -> Vector a     -- ^ input signal
+       -> Vector a     -- ^ output signal
 filter b a s v = let len = dim v
                      w = min s len
                      start = (negate . fromList . reverse . toList . subVector 0 w) v
                      finish = (negate . fromList . reverse . toList . subVector (len-w) w) v
                      v' = join [start,v,finish]
-                 in subVector s len $ S.filter b a v'
+                 in subVector s len $ S.filter_ b a v'
 
 -----------------------------------------------------------------------------
                      
--- | coefficients of a Hamming window
-hamming :: Int           -- ^ length
-        -> Vector Double -- ^ the Hamming coeffficents
-hamming = S.hamming
-
------------------------------------------------------------------------------
-
 -- | Welch (1967) power spectrum density using periodogram/FFT method
 pwelch :: Int            -- ^ sampling rate
        -> Int            -- ^ window size
@@ -101,11 +102,12 @@ broadband_fir s (l,h) = let o = 501
                         in standard_fir o be
 
 -- | a broadband filter
-broadband_filter :: Int           -- ^ sampling rate
-                 -> (Int,Int)     -- ^ (lower,upper) frequency cutoff
-                 -> Vector Double -- ^ input signal
-                 -> Vector Double -- ^ output signal
-broadband_filter s f v = let b = broadband_fir s f
+broadband_filter :: (S.Filterable a, Double ~ RealOf a) 
+                   ⇒ Int        -- ^ sampling rate
+                 -> (Int,Int)    -- ^ (lower,upper) frequency cutoff
+                 -> Vector a            -- ^ input signal
+                 -> Vector a            -- ^ output signal
+broadband_filter s f v = let b = real $ broadband_fir s f
                          in filter b (scalar 1.0) s v
                                 
 -----------------------------------------------------------------------------
@@ -115,7 +117,7 @@ broadband_filter s f v = let b = broadband_fir s f
 standard_fir :: Int -> [(Double,Double)] -> Vector Double
 standard_fir o be = let grid  = calc_grid o
                         trans = grid `div` 16
-                    in fir o be grid trans $ S.hamming (o+1)
+                    in fir o be grid trans $ S.hamming_ (o+1)
 
 calc_grid :: Int -> Int
 calc_grid o = let next_power = ceiling (((log $ fromIntegral o) :: Double) / (log 2.0)) :: Int
@@ -175,19 +177,21 @@ interpolate'' j x y xp = let x0 = x !! (j-1)
 -----------------------------------------------------------------------------
 
 -- | determine the frequency response of a filter, given a vector of frequencies
-freqzF :: Vector Double     -- ^ zero coefficients
-       -> Vector Double     -- ^ pole coefficients
-       -> Int               -- ^ sampling rate   
-       -> Vector Double     -- ^ frequencies
-       -> Vector Double     -- ^ frequency response
+freqzF :: (S.Filterable a, Double ~ DoubleOf a, S.Filterable (DoubleOf a)) ⇒ 
+         Vector a     -- ^ zero coefficients
+       -> Vector a       -- ^ pole coefficients
+       -> Int     -- ^ sampling rate   
+       -> Vector a       -- ^ frequencies
+       -> Vector a       -- ^ frequency response
 freqzF b a s f = S.freqz b a ((2*pi/(fromIntegral s)) * f)
 
 -- | determine the frequency response of a filter, given a number of points and sampling rate
-freqzN :: Vector Double     -- ^ zero coefficients
-       -> Vector Double     -- ^ pole coefficients
-       -> Int               -- ^ sampling rate
-       -> Int               -- ^ number of points
-       -> (Vector Double,Vector Double)     -- ^ (frequencies,response)
+freqzN :: (S.Filterable a, Enum a, Double ~ DoubleOf a) ⇒ 
+         Vector a     -- ^ zero coefficients
+       -> Vector a       -- ^ pole coefficients
+       -> Int     -- ^ sampling rate
+       -> Int     -- ^ number of points
+       -> (Vector a,Vector a)   -- ^ (frequencies,response)
 freqzN b a s n = let w' = linspace n (0,((fromIntegral n)-1)/(fromIntegral (2*n)))
                      r = S.freqz b a ((2*pi)*w')
                      in ((fromIntegral s)*w',r)
@@ -199,12 +203,14 @@ analytic_signal :: Vector Double -> Vector (Complex Double)
 analytic_signal = S.hilbert
 
 -- | the power (amplitude^2 = v * (conj c)) of an analytic signal
-analytic_power :: Vector (Complex Double) -> Vector Double
-analytic_power = S.complex_power
+analytic_power :: S.Filterable a ⇒ Vector (Complex Double) -> Vector a
+analytic_power = S.complex_power_
 
 -- | the phase of an analytic signal
-analytic_phase :: Vector (Complex Double) -> Vector Double
-analytic_phase = uncurry arctan2 . fromComplex
+analytic_phase :: (S.Filterable a, Container Vector a
+                 ,Double ~ DoubleOf a) ⇒ 
+                 Vector (Complex a) -> Vector a
+analytic_phase = (uncurry arctan2) . fromComplex
 
 -----------------------------------------------------------------------------
 
@@ -226,25 +232,28 @@ detrend w v = let windows = dim v `div` w
 
 -----------------------------------------------------------------------------
 
--- | take one sample from every n samples in the original
-downsample :: Int -> Vector Double -> Vector Double
-downsample = S.downsample
-
-
 -- | resize the vector to length n by resampling
-resize :: Int -> Vector Double -> Vector Double
-resize n v = downsample (dim v `div` n) v
+resize :: S.Filterable a ⇒ Int -> Vector a -> Vector a
+resize n v = S.downsample_ (dim v `div` n) v
 
 -----------------------------------------------------------------------------
+
+-- | coefficients of a Hamming window
+hamming :: S.Filterable a ⇒
+          Int           -- ^ length
+        -> Vector a -- ^ the Hamming coeffficents
+hamming = S.hamming_
+
+-- | resample, take one sample every n samples in the original
+downsample :: S.Filterable a ⇒ Int -> Vector a -> Vector a
+downsample = S.downsample_
 
 -- | the difference between consecutive elements of a vector
-deriv :: Vector Double -> Vector Double
-deriv = S.deriv
-
------------------------------------------------------------------------------
+deriv :: S.Filterable a ⇒ Vector a -> Vector a
+deriv = S.deriv_
 
 -- | unwrap the phase of signal (input expected to be within (-pi,pi)
-unwrap :: Vector Double -> Vector Double
-unwrap = S.unwrap
+unwrap :: S.Filterable a ⇒ Vector a -> Vector a
+unwrap = S.unwrap_
 
 -----------------------------------------------------------------------------
