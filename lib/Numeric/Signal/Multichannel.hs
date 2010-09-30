@@ -254,9 +254,10 @@ slice j w m = let m' = mapConcurrently (subVector j w) m
 -----------------------------------------------------------------------------
 
 -- | calculate the mutual information of the phase between pairs of channels (fills upper half of matrix)
-mi_phase :: Multichannel Double      -- ^ input data
+mi_phase :: (S.Filterable a, Double ~ DoubleOf a) ⇒
+           Multichannel a      -- ^ input data
          -> Matrix Double
-mi_phase m = let d = _data m
+mi_phase m = let d = fmap double $ _data m
                  histarray = mapArrayConcurrently (H.fromLimits 128 (-pi,pi)) d
                  c = channels m
                  pairs = I.array ((1,1),(c,c)) $ map (\(a,b) -> ((a,b),((a,b),d I.! a,d I.! b))) (range ((1,1),(c,c)))
