@@ -53,8 +53,10 @@ class Convolvable a where
 
 class (Storable a, Container Vector a, Num (Vector a)
       , Convert a, Floating (Vector a), RealElement a
-      )
+      , Num a)
        => Filterable a where
+    -- | conver from Vector Double
+    fromDouble :: Vector Double -> Vector a
 --       b ~ ComplexOf a, Container Vector b, Convert b) => Filterable a where
     -- | filter a signal
     filter_ :: Vector a -- ^ zero coefficients
@@ -118,6 +120,7 @@ foreign import ccall "signal-aux.h vector_complex_convolve" signal_vector_comple
 -----------------------------------------------------------------------------
 
 instance Filterable Double where
+    fromDouble = id
     filter_ = filterD
     hamming_ = hammingD
     complex_power_ = complex_powerD
@@ -127,6 +130,7 @@ instance Filterable Double where
     polyEval_ = polyEval
 
 instance Filterable Float where
+    fromDouble = single
     filter_ = filterF
     hamming_ = hammingF
     complex_power_ = complex_powerF

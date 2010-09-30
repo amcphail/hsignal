@@ -89,9 +89,10 @@ pwelch s w v = let w' = max s w -- make window at least sampling rate
 -----------------------------------------------------------------------------
 
 -- | a broadband FIR
-broadband_fir :: Int           -- ^ sampling rate
+broadband_fir :: (S.Filterable a, Double ~ DoubleOf a, Container Vector (Complex a), Convert (Complex a))  ⇒
+                Int           -- ^ sampling rate
               -> (Int,Int)     -- ^ (lower,upper) frequency cutoff
-              -> Vector Double -- ^ filter coefficients   
+              -> Vector a -- ^ filter coefficients   
 broadband_fir s (l,h) = let o = 501
                             ny = (fromIntegral s) / 2.0
                             fl = (fromIntegral l) / ny
@@ -102,19 +103,20 @@ broadband_fir s (l,h) = let o = 501
                         in standard_fir o be
 
 -- | a broadband filter
-broadband_filter :: (S.Filterable a, Double ~ RealOf a) 
+broadband_filter :: (S.Filterable a, Double ~ DoubleOf a, Container Vector (Complex a), Convert (Complex a)) 
                    ⇒ Int        -- ^ sampling rate
                  -> (Int,Int)    -- ^ (lower,upper) frequency cutoff
                  -> Vector a            -- ^ input signal
                  -> Vector a            -- ^ output signal
-broadband_filter s f v = let b = real $ broadband_fir s f
+broadband_filter s f v = let b = S.fromDouble $ broadband_fir s f
                          in filter b (scalar 1.0) s v
                                 
 -----------------------------------------------------------------------------
 
 -- | standard FIR filter
 -- |   FIR filter with grid a power of 2 greater than the order, ramp = grid/16, hamming window
-standard_fir :: Int -> [(Double,Double)] -> Vector Double
+standard_fir :: (S.Filterable a, Double ~ DoubleOf a, Container Vector (Complex a), Convert (Complex a)) ⇒ 
+               Int -> [(a,a)] -> Vector a
 standard_fir o be = let grid  = calc_grid o
                         trans = grid `div` 16
                     in fir o be grid trans $ S.hamming_ (o+1)
@@ -125,20 +127,22 @@ calc_grid o = let next_power = ceiling (((log $ fromIntegral o) :: Double) / (lo
 
 
 -- | produce an FIR filter
-fir :: Int               -- ^ order (one less than the length of the filter)
-    -> [(Double,Double)] -- ^ band edge frequency, nondecreasing, [0, f1, ..., f(n-1), 1]
-                         -- ^ band edge magnitude
+fir :: (S.Filterable a
+      , Container Vector (Complex a), Convert (Complex a), Double ~ DoubleOf a) ⇒
+      Int               -- ^ order (one less than the length of the filter)
+    -> [(a,a)] -- ^ band edge frequency, nondecreasing, [0, f1, ..., f(n-1), 1]
+                        -- ^ band edge magnitude
     -> Int               -- ^ grid spacing
     -> Int               -- ^ transition width
-    -> Vector Double     -- ^ smoothing window (size is order + 1)
-    -> Vector Double     -- ^ the filter coefficients
+    -> Vector a     -- ^ smoothing window (size is order + 1)
+    -> Vector a     -- ^ the filter coefficients
 fir o be gn tn w = let mid = o `div` 2
                        (f,m) = unzip be
-                       f' = diff (((fromIntegral gn) :: Double)/((fromIntegral tn) :: Double)/2.0) f
+                       f' = diff (((fromIntegral gn))/((fromIntegral tn))/2.0) f
                        m' = interpolate f m f'
                        grid = interpolate f' m' $ map (\x -> (fromIntegral x)/(fromIntegral gn)) [0..(gn-1)]
                        grid' = map (\x -> x :+ 0) grid
-                       (b,_) = fromComplex $ F.ifft $ fromList $ grid' ++ (reverse (drop 1 grid'))
+                       b = S.fromDouble $ fst $ fromComplex $ F.ifft $ double $ fromList $ grid' ++ (reverse (drop 1 grid'))
                        b' = join [subVector ((dim b)-mid-1) (mid+1) b, subVector 1 (mid+1) b] 
                    in b' * w
 
@@ -150,24 +154,24 @@ ceil_one x
     | x > 1.0   = 1.0
     | otherwise = x
 
-diff :: Double -> [Double] -> [Double]
+diff :: S.Filterable a ⇒ a -> [a] -> [a]
 diff _ []  = []
 diff _ [x] = [x]
 diff inc (x1:x2:xs)
      | x1 == x2     = (floor_zero $ x1-inc):x1:(ceil_one $ x1+inc):(diff inc (L.filter (/= x2) xs))
      | otherwise    = x1:(diff inc (x2:xs))
 
-interpolate :: [Double] -> [Double] -> [Double] -> [Double]
+interpolate :: S.Filterable a ⇒ [a] -> [a] -> [a] -> [a]
 interpolate _ _ []      = []
 interpolate x y (xp:xs) = if xp == 1.0 
                              then ((interpolate'' ((length x)-1) x y xp):(interpolate x y xs))
                              else ((interpolate' x y xp):(interpolate x y xs))
 
-interpolate' :: [Double] -> [Double] -> Double -> Double
+interpolate' :: S.Filterable a ⇒ [a] -> [a] -> a -> a
 interpolate' x y xp = let Just j = L.findIndex (> xp) x
                       in (interpolate'' j x y xp)
 
-interpolate'' :: Int -> [Double] -> [Double] -> Double -> Double
+interpolate'' :: S.Filterable a ⇒ Int -> [a] -> [a] -> a -> a
 interpolate'' j x y xp = let x0 = x !! (j-1)
                              y0 = y !! (j-1)
                              x1 = x !! j

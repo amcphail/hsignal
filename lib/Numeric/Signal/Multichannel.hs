@@ -235,7 +235,8 @@ detrend w m = let m' = mapConcurrently (S.detrend w) m
 
 
 -- | filter the data with the given passband
-filter :: (Int,Int) -> Multichannel Double -> Multichannel Double
+filter :: (S.Filterable a, Double ~ DoubleOf a, Container Vector (Complex a), Convert (Complex a)) ⇒ 
+         (Int,Int) -> Multichannel a -> Multichannel a
 filter pb m = let m' = mapConcurrently (S.broadband_filter (_sampling_rate m) pb) m
               in m' { _filtered = Just pb }
 
