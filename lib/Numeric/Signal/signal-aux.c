@@ -10,6 +10,23 @@
 
 #include <stdio.h>
 
+int vector_float_convolve(int cs, const float* c, int as, const float* a, int rs, float* r)
+{
+  int h = cs / 2;
+  int li, ri;
+  int i,j;
+
+  for (i = 0; i < cs; i++) {
+    li = i - h;
+    ri = i + h;
+    r[i] = 0;
+    for (j = (li >= 0 ? li : 0); j < (ri < as ? ri : (as - 1)); j++) {
+      r[i] += a[j]*c[j+h+1];
+    }
+  }
+  return 0;
+}
+
 int vector_double_convolve(int cs, const double* c, int as, const double* a, int rs, double* r)
 {
   int h = cs / 2;

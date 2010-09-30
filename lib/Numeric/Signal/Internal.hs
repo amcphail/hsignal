@@ -91,6 +91,17 @@ convolve_vector_double c a = unsafePerformIO $ do
 
 foreign import ccall "signal-aux.h vector_double_convolve" signal_vector_double_convolve :: CInt -> PD -> CInt -> PD -> CInt -> PD -> IO CInt
 
+instance Convolvable (Vector Float) where
+    convolve x y = single $ fst $ fromComplex $ F.ifft $ (F.fft (complex $ double x) * F.fft (complex $ double y))
+--    convolve = convolve_vector_double
+
+convolve_vector_float c a = unsafePerformIO $ do
+                             r <- createVector (dim a)
+                             app3 signal_vector_float_convolve vec c vec a vec r "signalFloatConvolve"
+                             return r
+
+foreign import ccall "signal-aux.h vector_float_convolve" signal_vector_float_convolve :: CInt -> PF -> CInt -> PF -> CInt -> PF -> IO CInt
+
 -----------------------------------------------------------------------------
 
 instance Convolvable (Vector (Complex Double)) where
