@@ -1,6 +1,5 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE UnicodeSyntax #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Signal
@@ -59,7 +58,7 @@ import Prelude hiding(filter)
 
 -- | filters the signal
 filter :: (S.Filterable a) 
-         ⇒ Vector a   -- ^ zero coefficients
+         => Vector a   -- ^ zero coefficients
        -> Vector a     -- ^ pole coefficients
        -> Int   -- ^ sampling rate
        -> Vector a     -- ^ input signal
@@ -89,7 +88,7 @@ pwelch s w v = let w' = max s w -- make window at least sampling rate
 -----------------------------------------------------------------------------
 
 -- | a broadband FIR
-broadband_fir :: (S.Filterable a, Double ~ DoubleOf a, Container Vector (Complex a), Convert (Complex a))  ⇒
+broadband_fir :: (S.Filterable a, Double ~ DoubleOf a, Container Vector (Complex a), Convert (Complex a)) =>
                 Int           -- ^ sampling rate
               -> (Int,Int)     -- ^ (lower,upper) frequency cutoff
               -> Vector a -- ^ filter coefficients   
@@ -104,7 +103,7 @@ broadband_fir s (l,h) = let o = 501
 
 -- | a broadband filter
 broadband_filter :: (S.Filterable a, Double ~ DoubleOf a, Container Vector (Complex a), Convert (Complex a)) 
-                   ⇒ Int        -- ^ sampling rate
+                   => Int        -- ^ sampling rate
                  -> (Int,Int)    -- ^ (lower,upper) frequency cutoff
                  -> Vector a            -- ^ input signal
                  -> Vector a            -- ^ output signal
@@ -115,7 +114,7 @@ broadband_filter s f v = let b = S.fromDouble $ broadband_fir s f
 
 -- | standard FIR filter
 -- |   FIR filter with grid a power of 2 greater than the order, ramp = grid/16, hamming window
-standard_fir :: (S.Filterable a, Double ~ DoubleOf a, Container Vector (Complex a), Convert (Complex a)) ⇒ 
+standard_fir :: (S.Filterable a, Double ~ DoubleOf a, Container Vector (Complex a), Convert (Complex a)) => 
                Int -> [(a,a)] -> Vector a
 standard_fir o be = let grid  = calc_grid o
                         trans = grid `div` 16
@@ -128,7 +127,7 @@ calc_grid o = let next_power = ceiling (((log $ fromIntegral o) :: Double) / (lo
 
 -- | produce an FIR filter
 fir :: (S.Filterable a
-      , Container Vector (Complex a), Convert (Complex a), Double ~ DoubleOf a) ⇒
+      , Container Vector (Complex a), Convert (Complex a), Double ~ DoubleOf a) =>
       Int               -- ^ order (one less than the length of the filter)
     -> [(a,a)] -- ^ band edge frequency, nondecreasing, [0, f1, ..., f(n-1), 1]
                         -- ^ band edge magnitude
@@ -154,24 +153,24 @@ ceil_one x
     | x > 1.0   = 1.0
     | otherwise = x
 
-diff :: S.Filterable a ⇒ a -> [a] -> [a]
+diff :: S.Filterable a => a -> [a] -> [a]
 diff _ []  = []
 diff _ [x] = [x]
 diff inc (x1:x2:xs)
      | x1 == x2     = (floor_zero $ x1-inc):x1:(ceil_one $ x1+inc):(diff inc (L.filter (/= x2) xs))
      | otherwise    = x1:(diff inc (x2:xs))
 
-interpolate :: S.Filterable a ⇒ [a] -> [a] -> [a] -> [a]
+interpolate :: S.Filterable a => [a] -> [a] -> [a] -> [a]
 interpolate _ _ []      = []
 interpolate x y (xp:xs) = if xp == 1.0 
                              then ((interpolate'' ((length x)-1) x y xp):(interpolate x y xs))
                              else ((interpolate' x y xp):(interpolate x y xs))
 
-interpolate' :: S.Filterable a ⇒ [a] -> [a] -> a -> a
+interpolate' :: S.Filterable a => [a] -> [a] -> a -> a
 interpolate' x y xp = let Just j = L.findIndex (> xp) x
                       in (interpolate'' j x y xp)
 
-interpolate'' :: S.Filterable a ⇒ Int -> [a] -> [a] -> a -> a
+interpolate'' :: S.Filterable a => Int -> [a] -> [a] -> a -> a
 interpolate'' j x y xp = let x0 = x !! (j-1)
                              y0 = y !! (j-1)
                              x1 = x !! j
@@ -181,7 +180,7 @@ interpolate'' j x y xp = let x0 = x !! (j-1)
 -----------------------------------------------------------------------------
 
 -- | determine the frequency response of a filter, given a vector of frequencies
-freqzF :: (S.Filterable a, Double ~ DoubleOf a, S.Filterable (DoubleOf a)) ⇒ 
+freqzF :: (S.Filterable a, Double ~ DoubleOf a, S.Filterable (DoubleOf a)) => 
          Vector a     -- ^ zero coefficients
        -> Vector a       -- ^ pole coefficients
        -> Int     -- ^ sampling rate   
@@ -190,7 +189,7 @@ freqzF :: (S.Filterable a, Double ~ DoubleOf a, S.Filterable (DoubleOf a)) ⇒
 freqzF b a s f = S.freqz b a ((2*pi/(fromIntegral s)) * f)
 
 -- | determine the frequency response of a filter, given a number of points and sampling rate
-freqzN :: (S.Filterable a, Enum a, Double ~ DoubleOf a) ⇒ 
+freqzN :: (S.Filterable a, Enum a, Double ~ DoubleOf a) =>
          Vector a     -- ^ zero coefficients
        -> Vector a       -- ^ pole coefficients
        -> Int     -- ^ sampling rate
@@ -207,12 +206,12 @@ analytic_signal :: Vector Double -> Vector (Complex Double)
 analytic_signal = S.hilbert
 
 -- | the power (amplitude^2 = v * (conj c)) of an analytic signal
-analytic_power :: S.Filterable a ⇒ Vector (Complex Double) -> Vector a
+analytic_power :: S.Filterable a => Vector (Complex Double) -> Vector a
 analytic_power = S.complex_power_
 
 -- | the phase of an analytic signal
 analytic_phase :: (S.Filterable a, Container Vector a
-                 ,Double ~ DoubleOf a) ⇒ 
+                 ,Double ~ DoubleOf a) => 
                  Vector (Complex a) -> Vector a
 analytic_phase = (uncurry arctan2) . fromComplex
 
@@ -237,27 +236,27 @@ detrend w v = let windows = dim v `div` w
 -----------------------------------------------------------------------------
 
 -- | resize the vector to length n by resampling
-resize :: S.Filterable a ⇒ Int -> Vector a -> Vector a
+resize :: S.Filterable a => Int -> Vector a -> Vector a
 resize n v = S.downsample_ (dim v `div` n) v
 
 -----------------------------------------------------------------------------
 
 -- | coefficients of a Hamming window
-hamming :: S.Filterable a ⇒
+hamming :: S.Filterable a =>
           Int           -- ^ length
         -> Vector a -- ^ the Hamming coeffficents
 hamming = S.hamming_
 
 -- | resample, take one sample every n samples in the original
-downsample :: S.Filterable a ⇒ Int -> Vector a -> Vector a
+downsample :: S.Filterable a => Int -> Vector a -> Vector a
 downsample = S.downsample_
 
 -- | the difference between consecutive elements of a vector
-deriv :: S.Filterable a ⇒ Vector a -> Vector a
+deriv :: S.Filterable a => Vector a -> Vector a
 deriv = S.deriv_
 
 -- | unwrap the phase of signal (input expected to be within (-pi,pi)
-unwrap :: S.Filterable a ⇒ Vector a -> Vector a
+unwrap :: S.Filterable a => Vector a -> Vector a
 unwrap = S.unwrap_
 
 -----------------------------------------------------------------------------

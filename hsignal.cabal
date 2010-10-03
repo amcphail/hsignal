@@ -1,5 +1,5 @@
 Name:               hsignal
-Version:            0.1.3
+Version:            0.1.3.2
 License:            BSD3
 License-file:       LICENSE
 Author:             Vivian McPhail
@@ -32,11 +32,10 @@ flag mkl
 
 library
 
-    Build-Depends:      base >= 3 && < 5,
+    Build-Depends:      base >= 4 && < 5,
                         mtl, 
                         array,
                         bytestring, storable-complex, binary,
-                        base-unicode-symbols,
                         hmatrix >= 0.10.0.0,
                         hmatrix-gsl-stats >= 0.1.2.6,
                         hstatistics >= 0.2.2.5
