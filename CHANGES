@@ -57,3 +57,25 @@
 
 0.1.3.2:
 		remove unicode symbols
+
+0.1.3.3:
+		updated to reflect change in mtl > 2
+
+0.1.3.4:
+		renamed unwrap to unwrap_double
+		added unwrap_float
+
+0.1.3.5:
+		renamed vector_deriv to vector_diff_double
+		added vector_diff_float
+
+0.1.3.6:
+		cleaned up mi_phase
+		generate H(X;X) for reference value
+
+0.2.0.0:
+		added instances to store complex values
+		Multichannel must now be [Complex] Float/Double
+		Multichannel Double is now stored to greater accuracy
+                   breaks file compatability - can be loaded as Multichannel Float
+		added histograms to Multichannel

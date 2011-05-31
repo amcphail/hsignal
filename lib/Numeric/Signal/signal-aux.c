@@ -265,7 +265,7 @@ int downsample_float(int n, int xs, const float* x, int rs, float* r)
   return 0;
 }
 
-int vector_deriv(int xs, const double* x, int rs, double* r)
+int vector_diff_double(int xs, const double* x, int rs, double* r)
 {
   if (rs != xs - 1) return 2000; // BAD_SIZE
 
@@ -277,7 +277,19 @@ int vector_deriv(int xs, const double* x, int rs, double* r)
   return 0;
 }
 
-int unwrap(int xs, const double* x, int rs, double* r)
+int vector_diff_float(int xs, const float* x, int rs, float* r)
+{
+  if (rs != xs - 1) return 2000; // BAD_SIZE
+
+  int i;
+
+  for (i = 0; i < rs; i++)
+    r[i] = x[i+1] - x[i];
+
+  return 0;
+}
+
+int unwrap_double(int xs, const double* x, int rs, double* r)
 {
   if (rs != xs) return 2000; // BAD_SIZE
 
@@ -296,3 +308,24 @@ int unwrap(int xs, const double* x, int rs, double* r)
 
   return 0;
 }
+
+int unwrap_float(int xs, const float* x, int rs, float* r)
+{
+  if (rs != xs) return 2000; // BAD_SIZE
+
+  int i;
+
+  r[0] = x[0];
+
+  int j = 0;
+
+  for (i = 1; i < rs; i++) {
+    if (x[i] < x[i-1]) {
+      j += 1;
+    }
+    r[i] = x[i] + j*2*M_PI;
+  }
+
+  return 0;
+}
+

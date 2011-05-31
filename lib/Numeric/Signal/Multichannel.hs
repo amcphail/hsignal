@@ -1,5 +1,8 @@
-{-# OPTIONS_GHC -fglasgow-exts #-}
-{-# OPTIONS_GHC -XUndecidableInstances #-}
+{-# LANGUAGE UndecidableInstances,
+             FlexibleInstances,
+             FlexibleContexts,
+             TypeFamilies,
+             ScopedTypeVariables #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Signal.Multichannel
@@ -16,6 +19,9 @@
 --
 -----------------------------------------------------------------------------
 
+--             IncoherentInstances,
+
+
 module Numeric.Signal.Multichannel (
                        Multichannel,readMultichannel,writeMultichannel,
                        createMultichannel,
@@ -26,6 +32,7 @@ module Numeric.Signal.Multichannel (
                        mapConcurrently,
                        detrend,filter,
                        slice,
+                       histograms,
                        mi_phase
                 ) where
 
@@ -37,6 +44,8 @@ import qualified Numeric.Signal as S
 
 import qualified Data.Array.IArray as I
 import Data.Ix
+
+--import Data.Word
 
 import Control.Concurrent
 --import Control.Concurrent.MVar
@@ -94,10 +103,7 @@ data Multichannel a = MC {
 
 -----------------------------------------------------------------------------
 
-instance (Binary a, Storable a, 
-          Ord a, RealFrac a,
-          Container Vector a,
-         Product a) => Binary (Multichannel a) where
+instance Binary (Multichannel Double) where
     put (MC s p c l de f d) = do
                               put s
                               put p
@@ -107,10 +113,8 @@ instance (Binary a, Storable a,
                               put f
                               put $! fmap convert d
         where convert v = let (mi,ma) = (minElement v,maxElement v)
-                              v' = mapVector (\x -> round $ (x - mi)/(ma - mi) * (fromIntegral (maxBound :: Word32))) v
-                          in (mi,ma,(v' :: Vector Word32)) 
-
-
+                              v' = mapVector (\x -> round $ (x - mi)/(ma - mi) * (fromIntegral (maxBound :: Word64))) v
+                          in (mi,ma,v' :: Vector Word64) 
 
     get = do
           s <- get
@@ -119,22 +123,92 @@ instance (Binary a, Storable a,
           l <- get
           de <- get
           f <- get
-          d <- (get :: Get (I.Array Int (a,a,Vector Word32)))
+          (d :: I.Array Int (a,a,Vector Word64)) <- get
           return $! (MC s p c l de f (seq d (fmap convert) d))
-              where convert (mi,ma,v) = mapVector (\x -> ((fromIntegral x) :: a) / (fromIntegral (maxBound :: Word32)) * (ma - mi) + mi) v
+              where convert (mi,ma,v) = mapVector (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word64)) * (ma - mi) + mi) v
+
+instance Binary (Multichannel Float) where
+    put (MC s p c l de f d) = do
+                              put s
+                              put p
+                              put c
+                              put l
+                              put de
+                              put f
+                              put $! fmap convert d
+        where convert v = let (mi,ma) = (minElement v,maxElement v)
+                              v' = mapVector (\x -> round $ (x - mi)/(ma - mi) * (fromIntegral (maxBound :: Word64))) v
+                          in (mi,ma,v' :: Vector Word64) 
+
+    get = do
+          s <- get
+          p <- get
+          c <- get
+          l <- get
+          de <- get
+          f <- get
+          (d :: I.Array Int (a,a,Vector Word32)) <- get
+          return $! (MC s p c l de f (seq d (fmap convert) d))
+              where convert (mi,ma,v) = mapVector (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word32)) * (ma - mi) + mi) v
+
+instance Binary (Multichannel (Complex Double)) where
+    put (MC s p c l de f d) = do
+                              put s
+                              put p
+                              put c
+                              put l
+                              put de
+                              put f
+                              put $! fmap ((\(r,i) -> (convert r, convert i)) . fromComplex) d
+        where convert v = let (mi,ma) = (minElement v,maxElement v)
+                              v' = mapVector (\x -> round $ (x - mi)/(ma - mi) * (fromIntegral (maxBound :: Word64))) v
+                          in (mi,ma,v' :: Vector Word64) 
+
+    get = do
+          s <- get
+          p <- get
+          c <- get
+          l <- get
+          de <- get
+          f <- get
+          (d :: I.Array Int ((a,a,Vector Word64),(a,a,Vector Word64))) <- get
+          return $! (MC s p c l de f (seq d (fmap (\(r,i) -> toComplex (convert r,convert i)) d)))
+              where convert (mi,ma,v) = mapVector (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word64)) * (ma - mi) + mi) v
+
+
+
+instance Binary (Multichannel (Complex Float)) where
+    put (MC s p c l de f d) = do
+                              put s
+                              put p
+                              put c
+                              put l
+                              put de
+                              put f
+                              put $! fmap ((\(r,i) -> (convert r, convert i)) . fromComplex) d
+        where convert v = let (mi,ma) = (minElement v,maxElement v)
+                              v' = mapVector (\x -> round $ (x - mi)/(ma - mi) * (fromIntegral (maxBound :: Word32))) v
+                          in (mi,ma,v' :: Vector Word32) 
+
+    get = do
+          s <- get
+          p <- get
+          c <- get
+          l <- get
+          de <- get
+          f <- get
+          (d :: I.Array Int ((a,a,Vector Word32),(a,a,Vector Word32))) <- get
+          return $! (MC s p c l de f (seq d (fmap (\(r,i) -> toComplex (convert r,convert i)) d)))
+              where convert (mi,ma,v) = mapVector (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word32)) * (ma - mi) + mi) v
+
+
 
 -----------------------------------------------------------------------------
 
-readMultichannel :: (Binary a, Storable a, 
-                     Ord a, RealFrac a,
-                     Container Vector a,
-                    Product a) => FilePath -> IO (Multichannel a)
+readMultichannel :: (Binary (Multichannel a)) => FilePath -> IO (Multichannel a)
 readMultichannel = decodeFile
 
-writeMultichannel :: (Binary a, Storable a, 
-                      Ord a, RealFrac a,
-                      Container Vector a,
-                     Product a) => FilePath -> Multichannel a -> IO ()
+writeMultichannel :: (Binary (Multichannel a)) => FilePath -> Multichannel a -> IO ()
 writeMultichannel = encodeFile
 
 -----------------------------------------------------------------------------
@@ -189,13 +263,13 @@ filtered = _filtered
 -- | map a function executed concurrently
 mapArrayConcurrently :: Ix i => (a -> b)    -- ^ function to map
                      -> I.Array i a         -- ^ input
-                     -> I.Array i b         -- ^ output
+                     -> (I.Array i b)     -- ^ output
 mapArrayConcurrently f d = unsafePerformIO $ do
-                                             let b = I.bounds d
-                                             results <- replicateM (rangeSize b) newEmptyMVar
-                                             mapM_ (forkIO . applyFunction f) $ zip results (I.assocs d)
-                                             vectors <- mapM takeMVar results
-                                             return $ I.array (I.bounds d) vectors
+  let b = I.bounds d
+  results <- replicateM (rangeSize b) newEmptyMVar
+  mapM_ (forkIO . applyFunction f) $ zip results (I.assocs d)
+  vectors <- mapM takeMVar results
+  return $ I.array b vectors
     where applyFunction f' (m,(j,e)) = putMVar m (j,f' e)
 
 {-
@@ -235,7 +309,7 @@ detrend w m = let m' = mapConcurrently (S.detrend w) m
 
 
 -- | filter the data with the given passband
-filter :: (S.Filterable a, Double ~ DoubleOf a, Container Vector (Complex a), Convert (Complex a)) ⇒ 
+filter :: (S.Filterable a, Double ~ DoubleOf a, Container Vector (Complex a), Convert (Complex a)) => 
          (Int,Int) -> Multichannel a -> Multichannel a
 filter pb m = let m' = mapConcurrently (S.broadband_filter (_sampling_rate m) pb) m
               in m' { _filtered = Just pb }
@@ -253,19 +327,34 @@ slice j w m = let m' = mapConcurrently (subVector j w) m
 
 -----------------------------------------------------------------------------
 
+-- | calculate histograms
+histograms :: (S.Filterable a, Double ~ DoubleOf a) =>
+            I.Array Int (Vector a)
+          -> Int -> (Double,Double) 
+          -> Int -> Int -> (Double,Double) -> (Double,Double) -- ^ bins and ranges
+          -> (I.Array Int H.Histogram,I.Array (Int,Int) H2.Histogram2D)
+histograms d' b (l,u) bx by (lx,ux) (ly,uy) 
+  = let d = fmap double d'
+        (bl,bu) = I.bounds d
+        br = ((bl,bl),(bu,bu))
+        histarray = mapArrayConcurrently (H.fromLimits b (l,u)) d
+        pairs = I.array br $ map (\(m,n) -> ((m,n),(d I.! m,d I.! n))) (range br)
+        hist2array = mapArrayConcurrently (\(x,y) -> (H2.addVector (H2.emptyLimits bx by (lx,ux) (ly,uy)) x y)) pairs
+    in (histarray,hist2array)
+
+-----------------------------------------------------------------------------
+
 -- | calculate the mutual information of the phase between pairs of channels (fills upper half of matrix)
-mi_phase :: (S.Filterable a, Double ~ DoubleOf a) ⇒
+mi_phase :: (S.Filterable a, Double ~ DoubleOf a) =>
            Multichannel a      -- ^ input data
          -> Matrix Double
-mi_phase m = let d = fmap double $ _data m
-                 histarray = mapArrayConcurrently (H.fromLimits 128 (-pi,pi)) d
-                 c = channels m
-                 pairs = I.array ((1,1),(c,c)) $ map (\(a,b) -> ((a,b),((a,b),d I.! a,d I.! b))) (range ((1,1),(c,c)))
-                 hist2array = mapArrayConcurrently (\(j,x,y) -> (j,H2.addVector (H2.emptyLimits 128 128 (-pi,pi) (-pi,pi)) x y)) pairs
-                 mi = mapArrayConcurrently (doMI histarray d) hist2array
+mi_phase m = let d = _data m
+                 (histarray,hist2array) = histograms d 128 (-pi,pi) 128 128 (-pi,pi) (-pi,pi)
+                 indhist = I.listArray (I.bounds hist2array) (I.assocs hist2array)
+                 mi = mapArrayConcurrently (doMI histarray (fmap double d)) indhist
              in fromArray2D mi
     where doMI histarray d ((x,y),h2) 
-              | x < y     = SI.mutual_information h2 (histarray I.! x) (histarray I.! y) (d I.! x,d I.! y)
+              | x <= y     = SI.mutual_information h2 (histarray I.! x) (histarray I.! y) (d I.! x,d I.! y)
               | otherwise = 0
 
 -----------------------------------------------------------------------------

@@ -304,19 +304,19 @@ foreign import ccall "signal-aux.h downsample_float" signal_downsample_float :: 
 derivD :: Vector Double -> Vector Double
 derivD v = unsafePerformIO $ do
           r <- createVector (dim v - 1)
-          app2 (signal_deriv_double) vec v vec r "diff"
+          app2 (signal_diff_double) vec v vec r "diff"
           return r
 
-foreign import ccall "signal-aux.h vector_deriv_double" signal_deriv_double :: CInt -> PD -> CInt -> PD -> IO CInt
+foreign import ccall "signal-aux.h vector_diff_double" signal_diff_double :: CInt -> PD -> CInt -> PD -> IO CInt
 
 -- | the difference between consecutive elements of a vector
 derivF :: Vector Float -> Vector Float
 derivF v = unsafePerformIO $ do
           r <- createVector (dim v - 1)
-          app2 (signal_deriv_float) vec v vec r "diff"
+          app2 (signal_diff_float) vec v vec r "diff"
           return r
 
-foreign import ccall "signal-aux.h vector_deriv_float" signal_deriv_float :: CInt -> PF -> CInt -> PF -> IO CInt
+foreign import ccall "signal-aux.h vector_diff_float" signal_diff_float :: CInt -> PF -> CInt -> PF -> IO CInt
 
 -----------------------------------------------------------------------------
 
