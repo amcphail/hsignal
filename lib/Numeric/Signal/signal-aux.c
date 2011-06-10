@@ -7,6 +7,8 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_poly.h>
+#include <gsl/gsl_statistics_double.h>
+#include <gsl/gsl_statistics_float.h>
 
 #include <stdio.h>
 
@@ -297,15 +299,25 @@ int unwrap_double(int xs, const double* x, int rs, double* r)
 
   r[0] = x[0];
 
-  int j = 0;
+  double c = 0;
+
+  int tmp;
 
   for (i = 1; i < rs; i++) {
-    if (x[i] < x[i-1]) {
-      j += 1;
+    tmp = x[i-1] - x[i];
+    if (tmp > M_PI) {
+      r[i] = 2*M_PI;
     }
-    r[i] = x[i] + j*2*M_PI;
+    else if (tmp < (-M_PI)) {
+      r[i] = -2*M_PI;
+    }
+    else {
+      r[i] = 0;
+    }
+    c += r[i];
+    r[i] = c + x[i];
   }
-
+  
   return 0;
 }
 
@@ -317,15 +329,126 @@ int unwrap_float(int xs, const float* x, int rs, float* r)
 
   r[0] = x[0];
 
-  int j = 0;
+  double c = 0;
+
+  int tmp;
 
   for (i = 1; i < rs; i++) {
-    if (x[i] < x[i-1]) {
-      j += 1;
+    tmp = x[i-1] - x[i];
+    if (tmp > M_PI) {
+      r[i] = 2*M_PI;
     }
-    r[i] = x[i] + j*2*M_PI;
+    else if (tmp < (-M_PI)) {
+      r[i] = -2*M_PI;
+    }
+    else {
+      r[i] = 0;
+    }
+    c += r[i];
+    r[i] = c + x[i];
   }
 
   return 0;
 }
 
+int cross_covariance_double(int max_lag,
+			    double* sx,
+			    double* sy,
+			    int xs, const double* x,
+			    int ys, const double* y,
+			    int rs, double* r)
+{
+  if (xs != ys)        return 2000; // BAD_SIZE
+  if (rs != 2*max_lag) return 2000; // BAD_SIZE
+
+  double mx = gsl_stats_mean(x,1,xs);
+  double my = gsl_stats_mean(y,1,ys);
+
+  *sx = gsl_stats_sd(x,1,xs);
+  *sy = gsl_stats_sd(y,1,ys);
+
+  int delay;
+  int i, j;
+
+  double sxy;
+
+  for (delay=-max_lag; delay < max_lag; delay++) {
+    sxy = 0;
+    for (i=0;i<xs;i++) {
+      j = i+delay;
+      if (j < 0 || j >= xs) sxy += (x[i]-mx)*(-my);
+      else sxy += (x[i]-mx)*(y[j]-my);
+      /* or should it be:
+      if (j < 0 || j >= xs) continue;
+      else sxy += (x[i]-mx)*(y[j]-my);
+      */
+    }
+    r[delay+max_lag] = sxy/xs;
+  }
+
+  return 0;
+}
+
+int cross_covariance_float(int max_lag,
+			    float* sx,
+			    float* sy,
+			    int xs, const float* x,
+			    int ys, const float* y,
+			    int rs, double* r)
+{
+  if (xs != ys)        return 2000; // BAD_SIZE
+  if (rs != 2*max_lag) return 2000; // BAD_SIZE
+
+  float mx = gsl_stats_float_mean(x,1,xs);
+  float my = gsl_stats_float_mean(y,1,ys);
+
+  *sx = gsl_stats_float_sd(x,1,xs);
+  *sy = gsl_stats_float_sd(y,1,ys);
+
+  int delay;
+  int i, j;
+
+  float sxy;
+
+  for (delay=-max_lag; delay < max_lag; delay++) {
+    sxy = 0;
+    for (i=0;i<xs;i++) {
+      j = i+delay;
+      if (j < 0 || j >= xs) sxy += (x[i]-mx)*(-my);
+      else sxy += (x[i]-mx)*(y[j]-my);
+      /* or should it be:
+      if (j < 0 || j >= xs) continue;
+      else sxy += (x[i]-mx)*(y[j]-my);
+      */
+    }
+    r[delay+max_lag] = sxy/xs;
+  }
+
+  return 0;
+}
+
+int cum_sum_double(int xs, const double* x, int rs, double* r)
+{
+  int i;
+
+  r[0] = x[0];
+
+  for (i=1;i<xs;i++) {
+    r[i] = r[i-1]+x[i];
+  }
+
+  return 0;
+}
+
+int cum_sum_float(int xs, const float* x, int rs, float* r)
+{
+  int i;
+
+  r[0] = x[0];
+
+  for (i=1;i<xs;i++) {
+    r[i] = r[i-1]+x[i];
+  }
+
+  return 0;
+}

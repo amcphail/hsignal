@@ -79,3 +79,26 @@
 		Multichannel Double is now stored to greater accuracy
                    breaks file compatability - can be loaded as Multichannel Float
 		added histograms to Multichannel
+
+0.2.0.1:
+		added Filterable instance for Complex Float
+
+0.2.1.0:
+		added Noise.hs: pinkNoise, spatialNoise, powerNoise
+		fixed bug in detrend that occurs if a zero window occurs at end
+
+0.2.2:
+		added entropy_phase
+
+0.2.2.1:
+		fixed unwrap
+
+0.2.3:
+		added cross covariance and friends
+
+0.2.3.1:
+		added cross spectrum
+		added cum_sum
+
+
+		

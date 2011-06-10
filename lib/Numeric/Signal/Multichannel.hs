@@ -33,7 +33,7 @@ module Numeric.Signal.Multichannel (
                        detrend,filter,
                        slice,
                        histograms,
-                       mi_phase
+                       entropy_delta_phase,mi_phase
                 ) where
 
 -----------------------------------------------------------------------------
@@ -55,6 +55,7 @@ import System.IO.Unsafe(unsafePerformIO)
 --import qualified Data.List as L
 
 import Data.Binary
+import Data.Maybe
 
 import Foreign.Storable
 
@@ -341,6 +342,23 @@ histograms d' b (l,u) bx by (lx,ux) (ly,uy)
         pairs = I.array br $ map (\(m,n) -> ((m,n),(d I.! m,d I.! n))) (range br)
         hist2array = mapArrayConcurrently (\(x,y) -> (H2.addVector (H2.emptyLimits bx by (lx,ux) (ly,uy)) x y)) pairs
     in (histarray,hist2array)
+
+-----------------------------------------------------------------------------
+
+-- | calculate the entropy of the phase difference between pairs of channels (fills upper half of matrix)
+entropy_delta_phase :: (S.Filterable a, Double ~ DoubleOf a) =>
+                Multichannel a      -- ^ input data
+              -> Matrix Double
+entropy_delta_phase m = let d = _data m
+                            c = _channels m
+                            b = ((1,1),(c,c))
+                            r = I.range b
+                            diff = I.listArray b (map (\i@(x,y) -> (i,if x <= y then Just (double $ (d I.! y)-(d I.! x)) else Nothing)) r) :: I.Array (Int,Int) ((Int,Int),Maybe (Vector Double))
+                            h = mapArrayConcurrently (maybe Nothing (\di -> Just $ H.fromLimits 128 ((-2)*pi,2*pi) di)) (fmap snd diff)
+                            ent = mapArrayConcurrently (\(i,difvec) -> case difvec of 
+                                                        Nothing -> 0 :: Double
+                                                        Just da -> SI.entropy (fromJust (h I.! i)) da) diff
+                        in fromArray2D ent
 
 -----------------------------------------------------------------------------
 

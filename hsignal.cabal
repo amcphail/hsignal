@@ -1,5 +1,5 @@
 Name:               hsignal
-Version:            0.2.0.0
+Version:            0.2.3.2
 License:            BSD3
 License-file:       LICENSE
 Copyright:          (c) A.V.H. McPhail 2010, 2011
@@ -37,15 +37,16 @@ library
                         mtl > 2, 
                         array,
                         bytestring, storable-complex, binary,
-                        hmatrix >= 0.10.0.0,
-                        hmatrix-gsl-stats >= 0.1.2.9,
-                        hstatistics >= 0.2.2.7
+                        hmatrix >= 0.10.0.4,
+                        hmatrix-gsl-stats >= 0.1.2.10,
+                        hstatistics >= 0.2.2.10
 
     Extensions:         ForeignFunctionInterface
 
     hs-source-dirs:     lib
     Exposed-modules:    Numeric.Signal
                         Numeric.Signal.Multichannel
+                        Numeric.Signal.Noise
                         Numeric.Signal.EEG
     other-modules:      Numeric.Signal.Internal
                         Numeric.Signal.EEG.BDF

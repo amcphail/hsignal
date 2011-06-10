@@ -20,7 +20,7 @@ module Numeric.Signal.Internal (
                 Filterable(..),
                 freqz,
                 pwelch,
-                hilbert,
+                hilbert
                 ) where
 
 import Data.Packed.Development(createVector,vec,app1,app2,app3,app4)
@@ -79,6 +79,14 @@ class (Storable a, Container Vector a, Num (Vector a)
     polyEval_ :: Vector a           -- ^ the real coefficients
          -> Vector (Complex Double) -- ^ the points at which to be evaluated
          -> Vector (Complex Double) -- ^ the values
+    -- | the cross covariance of two signals
+    cross_covariance_ :: Int            -- ^ maximum delay
+                     -> Vector a       -- ^ time series
+                     -> Vector a       -- ^ time series
+                     -> (a,a,Vector a) -- ^ (sd_x,sd_y,cross_covariance)
+    -- | the cumulative sum of a signal
+    cumulative_sum_ :: Vector a    -- ^ time series
+                    -> Vector a    -- ^ result
 
 -----------------------------------------------------------------------------
 
@@ -117,6 +125,9 @@ convolve_vector_complex c a = unsafePerformIO $ do
 
 foreign import ccall "signal-aux.h vector_complex_convolve" signal_vector_complex_convolve :: CInt -> PC -> CInt -> PC -> CInt -> PC -> IO CInt
 
+instance Convolvable (Vector (Complex Float)) where
+    convolve x y = single $ F.ifft $ (F.fft (double x) * F.fft (double y))
+
 -----------------------------------------------------------------------------
 
 instance Filterable Double where
@@ -128,6 +139,8 @@ instance Filterable Double where
     deriv_ = derivD
     unwrap_ = unwrapD
     polyEval_ = polyEval
+    cross_covariance_ = crossCovarianceD
+    cumulative_sum_ = cumSumD
 
 instance Filterable Float where
     fromDouble = single
@@ -138,6 +151,8 @@ instance Filterable Float where
     deriv_ = derivF
     unwrap_ = unwrapF
     polyEval_ c = polyEval (double c)
+    cross_covariance_ = crossCovarianceF
+    cumulative_sum_ = cumSumF
 
 -----------------------------------------------------------------------------
 
@@ -337,6 +352,57 @@ unwrapF v = unsafePerformIO $ do
            return r
 
 foreign import ccall "signal-aux.h unwrap_float" signal_unwrap_float :: CInt -> PF -> CInt -> PF -> IO CInt
+
+-----------------------------------------------------------------------------
+
+-- | compute the cross covariance of two signals
+crossCovarianceD :: Int -> Vector Double -> Vector Double -> (Double,Double,Vector Double)
+crossCovarianceD l x y = unsafePerformIO $ do
+                           r <- createVector (2*l)
+                           alloca $ \sx -> 
+                               alloca $ \sy -> do
+                                 app3 (signal_cross_covariance_double (fromIntegral l) sx sy) vec x vec y vec r "cross_covariance"
+                                 sx' <- peek sx
+                                 sy' <- peek sy
+                                 return (sx',sy',r)
+
+foreign import ccall "signal-aux.h cross_covariance_double" 
+        signal_cross_covariance_double :: CInt -> PD -> PD -> CInt -> PD -> CInt
+                                       -> PD -> CInt -> PD -> IO CInt
+
+-- | compute the cross covariance of two signals
+crossCovarianceF :: Int -> Vector Float -> Vector Float -> (Float,Float,Vector Float)
+crossCovarianceF l x y = unsafePerformIO $ do
+                           r <- createVector (2*l)
+                           alloca $ \sx -> 
+                               alloca $ \sy -> do
+                                 app3 (signal_cross_covariance_float (fromIntegral l) sx sy) vec x vec y vec r "cross_covariance"
+                                 sx' <- peek sx
+                                 sy' <- peek sy
+                                 return (sx',sy',r)
+
+foreign import ccall "signal-aux.h cross_covariance_float" 
+        signal_cross_covariance_float :: CInt -> PF -> PF -> CInt -> PF -> CInt
+                                       -> PF -> CInt -> PF -> IO CInt
+
+-----------------------------------------------------------------------------
+
+cumSumD :: Vector Double -> Vector Double
+cumSumD v = unsafePerformIO $ do
+              r <- createVector (dim v)
+              app2 signal_cum_sum_double vec v vec r "cumSumD"
+              return r
+
+cumSumF :: Vector Float -> Vector Float
+cumSumF v = unsafePerformIO $ do
+              r <- createVector (dim v)
+              app2 signal_cum_sum_float vec v vec r "cumSumF"
+              return r
+
+foreign import ccall "signal-aux.h cum_sum_double"
+        signal_cum_sum_double :: CInt -> PD -> CInt -> PD -> IO CInt
+foreign import ccall "signal-aux.h cum_sum_float"
+        signal_cum_sum_float :: CInt -> PF -> CInt -> PF -> IO CInt
 
 -----------------------------------------------------------------------------
 

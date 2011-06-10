@@ -26,11 +26,15 @@ module Numeric.Signal (
                        -- * Analytic Signal
                        analytic_signal,analytic_power,analytic_phase,
                        unwrap,
+                       -- * Statistics
+                       cross_covariance,cross_correlation,cross_spectrum,
+                       auto_covariance,auto_correlation,
                        -- * Preprocessing
                        detrend,
                        resize,
                        downsample,
                        deriv,
+                       cumulative_sum
                 ) where
 
 -----------------------------------------------------------------------------
@@ -222,7 +226,9 @@ detrend :: Int             -- ^ window size
         -> Vector Double   -- ^ data to be detrended
         -> Vector Double   -- ^ detrended data
 detrend w v = let windows = dim v `div` w
-                  ws = takesV ((replicate windows w) ++ [dim v - (windows * w)]) v
+                  re = dim v - (windows * w)
+                  re' = if re == 0 then [] else [re]
+                  ws = takesV ((replicate windows w) ++ re') v
                   ds = map detrend' ws
                   windows' = (dim v - (w `div` 2)) `div` w
                   ws' = takesV (((w `div` 2):(replicate windows' w)) ++ [dim v - (w `div` 2) - (windows' * w)]) v
@@ -241,6 +247,54 @@ resize n v = S.downsample_ (dim v `div` n) v
 
 -----------------------------------------------------------------------------
 
+-- | cross covariance of two signals
+--     the cross correlation is computed by dividing the result
+--     by the product of the two standard deviations
+cross_covariance :: S.Filterable a => 
+                   Int           -- ^ maximum delay
+                 -> Vector a -- ^ time series
+                 -> Vector a -- ^ time series
+                 -> (a,a,Vector a) -- ^ (sd_x,sd_y,cov_xy)
+cross_covariance = S.cross_covariance_
+
+-- | cross correlation of two signals
+cross_correlation :: S.Filterable a => 
+                   Int           -- ^ maximum delay
+                 -> Vector a -- ^ time series
+                 -> Vector a -- ^ time series
+                 -> Vector a -- ^ result
+cross_correlation l x y = let (sx,sy,r) = S.cross_covariance_ l x y
+                          in mapVector (/ (sx*sy)) r
+
+-- | compute the cross spectrum
+cross_spectrum :: (S.Filterable a, Double ~ DoubleOf a) =>
+                 Int                      -- ^ maximum delay
+               -> Vector a                 -- ^ time series
+               -> Vector a                 -- ^ time series
+               -> Vector (Complex Double)  -- ^ result
+cross_spectrum l x y = (\(_,_,c) -> F.fft (complex $ double c)) (cross_covariance l x y)
+
+
+-- | auto covariance of two signals
+--     the auto correlation is computed by dividing the result
+--     by the variance
+auto_covariance :: S.Filterable a => 
+                   Int           -- ^ maximum delay
+                 -> Vector a -- ^ time series
+                 -> (a,Vector a) -- ^ (var,cov_xx)
+auto_covariance l v = let (sd,_,r) = cross_covariance l v v
+                      in (sd*sd,r)
+
+-- | auto correlation of two signals
+auto_correlation :: S.Filterable a => 
+                   Int           -- ^ maximum delay
+                 -> Vector a -- ^ time series
+                 -> Vector a -- ^ result
+auto_correlation l v = let (var,r) = auto_covariance l v
+                          in mapVector (/ var) r
+
+-----------------------------------------------------------------------------
+
 -- | coefficients of a Hamming window
 hamming :: S.Filterable a =>
           Int           -- ^ length
@@ -255,7 +309,13 @@ downsample = S.downsample_
 deriv :: S.Filterable a => Vector a -> Vector a
 deriv = S.deriv_
 
--- | unwrap the phase of signal (input expected to be within (-pi,pi)
+-- | cumulative sum of a series
+cumulative_sum :: S.Filterable a =>
+                 Vector a 
+               -> Vector a
+cumulative_sum = S.cumulative_sum_
+
+-- | unwrap the phase of signal (input expected to be within (-pi,pi))
 unwrap :: S.Filterable a => Vector a -> Vector a
 unwrap = S.unwrap_
 
