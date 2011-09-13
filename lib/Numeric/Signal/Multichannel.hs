@@ -124,7 +124,7 @@ instance Binary (Multichannel Double) where
           l <- get
           de <- get
           f <- get
-          (d :: I.Array Int (a,a,Vector Word64)) <- get
+          (d :: I.Array Int (Double,Double,Vector Word64)) <- get
           return $! (MC s p c l de f (seq d (fmap convert) d))
               where convert (mi,ma,v) = mapVector (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word64)) * (ma - mi) + mi) v
 
@@ -148,7 +148,7 @@ instance Binary (Multichannel Float) where
           l <- get
           de <- get
           f <- get
-          (d :: I.Array Int (a,a,Vector Word32)) <- get
+          (d :: I.Array Int (Float,Float,Vector Word32)) <- get
           return $! (MC s p c l de f (seq d (fmap convert) d))
               where convert (mi,ma,v) = mapVector (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word32)) * (ma - mi) + mi) v
 
@@ -172,7 +172,7 @@ instance Binary (Multichannel (Complex Double)) where
           l <- get
           de <- get
           f <- get
-          (d :: I.Array Int ((a,a,Vector Word64),(a,a,Vector Word64))) <- get
+          (d :: I.Array Int ((Double,Double,Vector Word64),(Double,Double,Vector Word64))) <- get
           return $! (MC s p c l de f (seq d (fmap (\(r,i) -> toComplex (convert r,convert i)) d)))
               where convert (mi,ma,v) = mapVector (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word64)) * (ma - mi) + mi) v
 
@@ -198,7 +198,7 @@ instance Binary (Multichannel (Complex Float)) where
           l <- get
           de <- get
           f <- get
-          (d :: I.Array Int ((a,a,Vector Word32),(a,a,Vector Word32))) <- get
+          (d :: I.Array Int ((Float,Float,Vector Word32),(Float,Float,Vector Word32))) <- get
           return $! (MC s p c l de f (seq d (fmap (\(r,i) -> toComplex (convert r,convert i)) d)))
               where convert (mi,ma,v) = mapVector (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word32)) * (ma - mi) + mi) v
 

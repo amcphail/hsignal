@@ -100,5 +100,9 @@
 		added cross spectrum
 		added cum_sum
 
+0.2.3.2:
+		copied Config.hs from hmatrix
 
+0.2.3.3:
+		updated for ghc 7.2
 		
