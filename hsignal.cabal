@@ -1,5 +1,5 @@
 Name:               hsignal
-Version:            0.2.3.3
+Version:            0.2.4
 License:            BSD3
 License-file:       LICENSE
 Copyright:          (c) A.V.H. McPhail 2010, 2011
@@ -18,7 +18,7 @@ Description:
      .
      Feature requests, suggestions, and bug fixes welcome.
 Category:           Math
-tested-with:        GHC ==7.0.3
+tested-with:        GHC ==7.4.1
 
 cabal-version:      >=1.8
 
@@ -81,6 +81,6 @@ library
     extra-lib-dirs:
 
 source-repository head
-    type:     darcs
-    location: http://code.haskell.org/hsignal
+    type:     git
+    location: git@github.com:amcphail/hsignal.git
 
