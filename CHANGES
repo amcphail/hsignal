@@ -108,3 +108,6 @@
 		
 0.2.4:
 		move to github
+
+0.2.4.1:
+		fixed .cabal repository line
