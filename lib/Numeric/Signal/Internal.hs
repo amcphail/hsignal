@@ -31,11 +31,14 @@ import Numeric.LinearAlgebra
 --import Numeric.LinearAlgebra.Linear
 
 import qualified Numeric.GSL.Fourier as F
-import Foreign
+import Foreign hiding (unsafePerformIO)
+
 --import Data.Complex
 import Foreign.C.Types
 
 import Prelude hiding(filter)
+
+import System.IO.Unsafe(unsafePerformIO)
 
 -----------------------------------------------------------------------------
 
