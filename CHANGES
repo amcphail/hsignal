@@ -115,3 +115,6 @@
 0.2.4.2:
 		removed Warning about Foreign CInt
 		switch to System.IO.Unsafe.unsafePerformIO
+
+0.2.4.3:
+		removed reference to '-fvector' in .cabal
