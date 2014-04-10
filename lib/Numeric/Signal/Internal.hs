@@ -31,7 +31,7 @@ import Numeric.LinearAlgebra
 --import Numeric.LinearAlgebra.Linear
 
 import qualified Numeric.GSL.Fourier as F
-import Foreign hiding (unsafePerformIO)
+import Foreign
 
 --import Data.Complex
 import Foreign.C.Types

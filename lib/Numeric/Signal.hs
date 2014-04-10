@@ -121,8 +121,8 @@ broadband_filter s f v = let b = S.fromDouble $ broadband_fir s f
 standard_fir :: (S.Filterable a, Double ~ DoubleOf a, Container Vector (Complex a), Convert (Complex a)) => 
                Int -> [(a,a)] -> Vector a
 standard_fir o be = let grid  = calc_grid o
-                        trans = grid `div` 16
-                    in fir o be grid trans $ S.hamming_ (o+1)
+                        trans_ = grid `div` 16
+                    in fir o be grid trans_ $ S.hamming_ (o+1)
 
 calc_grid :: Int -> Int
 calc_grid o = let next_power = ceiling (((log $ fromIntegral o) :: Double) / (log 2.0)) :: Int

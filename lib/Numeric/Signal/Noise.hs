@@ -47,7 +47,7 @@ module Numeric.Signal.Noise (
 
 
 import Numeric.Container
-import Numeric.LinearAlgebra
+import Numeric.LinearAlgebra()
 
 import qualified Numeric.GSL.Fourier as F
 

@@ -192,10 +192,10 @@ readData f rs ss = do
                    -- let v = rotate d
                    -- lift $ putStrLn $ "vectors: " ++ (show $ length v)
                    -- lift $ putStrLn $ "slices: " ++ (show $ length $ head v)
-                   return $! map join $! rotate d
-    where rotate []            = []
-          rotate xs@((_:[]):_) = [concat xs]
-          rotate ((x:xs):xss)  = (x : (map head xss)) : (rotate (xs : (map tail xss)))
+                   return $! map join $! rotate_ d
+    where rotate_ []            = []
+          rotate_ xs@((_:[]):_) = [concat xs]
+          rotate_ ((x:xs):xss)  = (x : (map head xss)) : (rotate_ (xs : (map tail xss)))
  
 {-
 readData _ 0     _  = error "readData, zeroth record requested"

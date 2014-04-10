@@ -160,7 +160,7 @@ instance Binary (Multichannel (Complex Double)) where
                               put l
                               put de
                               put f
-                              put $! fmap ((\(r,i) -> (convert r, convert i)) . fromComplex) d
+                              put $! fmap ((\(r,j) -> (convert r, convert j)) . fromComplex) d
         where convert v = let (mi,ma) = (minElement v,maxElement v)
                               v' = mapVector (\x -> round $ (x - mi)/(ma - mi) * (fromIntegral (maxBound :: Word64))) v
                           in (mi,ma,v' :: Vector Word64) 
@@ -173,7 +173,7 @@ instance Binary (Multichannel (Complex Double)) where
           de <- get
           f <- get
           (d :: I.Array Int ((Double,Double,Vector Word64),(Double,Double,Vector Word64))) <- get
-          return $! (MC s p c l de f (seq d (fmap (\(r,i) -> toComplex (convert r,convert i)) d)))
+          return $! (MC s p c l de f (seq d (fmap (\(r,j) -> toComplex (convert r,convert j)) d)))
               where convert (mi,ma,v) = mapVector (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word64)) * (ma - mi) + mi) v
 
 
@@ -186,7 +186,7 @@ instance Binary (Multichannel (Complex Float)) where
                               put l
                               put de
                               put f
-                              put $! fmap ((\(r,i) -> (convert r, convert i)) . fromComplex) d
+                              put $! fmap ((\(r,j) -> (convert r, convert j)) . fromComplex) d
         where convert v = let (mi,ma) = (minElement v,maxElement v)
                               v' = mapVector (\x -> round $ (x - mi)/(ma - mi) * (fromIntegral (maxBound :: Word32))) v
                           in (mi,ma,v' :: Vector Word32) 
@@ -199,7 +199,7 @@ instance Binary (Multichannel (Complex Float)) where
           de <- get
           f <- get
           (d :: I.Array Int ((Float,Float,Vector Word32),(Float,Float,Vector Word32))) <- get
-          return $! (MC s p c l de f (seq d (fmap (\(r,i) -> toComplex (convert r,convert i)) d)))
+          return $! (MC s p c l de f (seq d (fmap (\(r,j) -> toComplex (convert r,convert j)) d)))
               where convert (mi,ma,v) = mapVector (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word32)) * (ma - mi) + mi) v
 
 
@@ -353,11 +353,11 @@ entropy_delta_phase m = let d = _data m
                             c = _channels m
                             b = ((1,1),(c,c))
                             r = I.range b
-                            diff = I.listArray b (map (\i@(x,y) -> (i,if x <= y then Just (double $ (d I.! y)-(d I.! x)) else Nothing)) r) :: I.Array (Int,Int) ((Int,Int),Maybe (Vector Double))
+                            diff = I.listArray b (map (\j@(x,y) -> (j,if x <= y then Just (double $ (d I.! y)-(d I.! x)) else Nothing)) r) :: I.Array (Int,Int) ((Int,Int),Maybe (Vector Double))
                             h = mapArrayConcurrently (maybe Nothing (\di -> Just $ H.fromLimits 128 ((-2)*pi,2*pi) di)) (fmap snd diff)
-                            ent = mapArrayConcurrently (\(i,difvec) -> case difvec of 
+                            ent = mapArrayConcurrently (\(j,difvec) -> case difvec of 
                                                         Nothing -> 0 :: Double
-                                                        Just da -> SI.entropy (fromJust (h I.! i)) da) diff
+                                                        Just da -> SI.entropy (fromJust (h I.! j)) da) diff
                         in fromArray2D ent
 
 -----------------------------------------------------------------------------
