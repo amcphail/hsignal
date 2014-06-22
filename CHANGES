@@ -118,3 +118,6 @@
 
 0.2.4.3:
 		removed reference to '-fvector' in .cabal
+
+0.2.5:
+		added hmatrix-gsl dependency for new hmatrix 0.16
