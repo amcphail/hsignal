@@ -121,3 +121,6 @@
 
 0.2.5:
 		added hmatrix-gsl dependency for new hmatrix 0.16
+
+0.2.6:
+		added BDF(..) export and loadBDFRaw to EEG.BDF

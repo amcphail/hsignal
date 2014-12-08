@@ -13,7 +13,9 @@
 -----------------------------------------------------------------------------
 
 module Numeric.Signal.EEG.BDF (
-                           loadBDF
+                               BDF(..)
+                              , loadBDFRaw
+                              , loadBDF
                           ) where
 
 import qualified Data.ByteString as BS
@@ -285,6 +287,21 @@ loadBDF fn = do
              when (not (BS.null bs')) $ do
                   putStrLn "data remaining..."
              return m
+
+-- | Load a BDF data structure
+loadBDFRaw :: FilePath -> IO (Maybe BDF)
+loadBDFRaw fn = do
+  bs <- BS.readFile fn
+  (bdf,bs') <- runStateT readBDF bs
+  m <- case bdf of
+        Just b -> return (Just b)
+        _      -> do
+                  putStrLn "File not read"
+                  return Nothing
+  when (not (BS.null bs')) $ do
+    putStrLn "data remaining..."
+  return m
+
 
 {-
 getDPConversion :: BDF -> [Word32 -> Float]
