@@ -124,3 +124,6 @@
 
 0.2.6:
 		added BDF(..) export and loadBDFRaw to EEG.BDF
+
+0.2.6.1:
+		added warning about data conversion to loadBDFRaw

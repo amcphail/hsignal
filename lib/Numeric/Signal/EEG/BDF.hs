@@ -108,6 +108,7 @@ data Date = Date { day :: Int, month :: Int, year :: Int }
 data Time = Time { hour :: Int, minute :: Int, second :: Int }
           deriving(Eq,Ord,Show)
 
+-- | BDF datatype.  NOTE: data has already been converted to Float
 data BDF = BDF {
                 id_ :: !Word8
                 , type_ :: !String
@@ -289,6 +290,7 @@ loadBDF fn = do
              return m
 
 -- | Load a BDF data structure
+--   NOTE: data has already been converted to Float
 loadBDFRaw :: FilePath -> IO (Maybe BDF)
 loadBDFRaw fn = do
   bs <- BS.readFile fn
