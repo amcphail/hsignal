@@ -127,3 +127,6 @@
 
 0.2.6.1:
 		added warning about data conversion to loadBDFRaw
+
+0.2.7:
+		Update build configuration : copied from hmatrix		
