@@ -130,3 +130,6 @@
 
 0.2.7:
 		Update build configuration : copied from hmatrix		
+
+0.2.7.1:
+		added gsl dependencies to cabal file
