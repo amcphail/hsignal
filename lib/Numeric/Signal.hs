@@ -54,6 +54,8 @@ import qualified Data.List as L
 --import Data.Packed(Container(..))
 import Numeric.LinearAlgebra
 
+import qualified Data.Vector.Generic as GV 
+
 import qualified Numeric.GSL.Fourier as F
 
 import Prelude hiding(filter)
@@ -67,11 +69,11 @@ filter :: (S.Filterable a)
        -> Int   -- ^ sampling rate
        -> Vector a     -- ^ input signal
        -> Vector a     -- ^ output signal
-filter b a s v = let len = dim v
+filter b a s v = let len = size v
                      w = min s len
                      start = (negate . fromList . reverse . toList . subVector 0 w) v
                      finish = (negate . fromList . reverse . toList . subVector (len-w) w) v
-                     v' = join [start,v,finish]
+                     v' = vjoin [start,v,finish]
                  in subVector s len $ S.filter_ b a v'
 
 -----------------------------------------------------------------------------
@@ -146,7 +148,7 @@ fir o be gn tn w = let mid = o `div` 2
                        grid = interpolate f' m' $ map (\x -> (fromIntegral x)/(fromIntegral gn)) [0..(gn-1)]
                        grid' = map (\x -> x :+ 0) grid
                        b = S.fromDouble $ fst $ fromComplex $ F.ifft $ double $ fromList $ grid' ++ (reverse (drop 1 grid'))
-                       b' = join [subVector ((dim b)-mid-1) (mid+1) b, subVector 1 (mid+1) b] 
+                       b' = vjoin [subVector ((size b)-mid-1) (mid+1) b, subVector 1 (mid+1) b] 
                    in b' * w
 
 floor_zero x
@@ -225,16 +227,16 @@ analytic_phase = (uncurry arctan2) . fromComplex
 detrend :: Int             -- ^ window size
         -> Vector Double   -- ^ data to be detrended
         -> Vector Double   -- ^ detrended data
-detrend w v = let windows = dim v `div` w
-                  re = dim v - (windows * w)
+detrend w v = let windows = size v `div` w
+                  re = size v - (windows * w)
                   re' = if re == 0 then [] else [re]
                   ws = takesV ((replicate windows w) ++ re') v
                   ds = map detrend' ws
-                  windows' = (dim v - (w `div` 2)) `div` w
-                  ws' = takesV (((w `div` 2):(replicate windows' w)) ++ [dim v - (w `div` 2) - (windows' * w)]) v
+                  windows' = (size v - (w `div` 2)) `div` w
+                  ws' = takesV (((w `div` 2):(replicate windows' w)) ++ [size v - (w `div` 2) - (windows' * w)]) v
                   ds' = map detrend' ws'
-              in (join ds + join ds') / 2 
-    where detrend' x = let ln = dim x
+              in (vjoin ds + vjoin ds') / 2 
+    where detrend' x = let ln = size x
                            t = linspace ln (1.0,fromIntegral ln)
                            (c0,c1,_,_,_,_) = linear t x
                        in x - (scale c1 t + scalar c0)
@@ -243,7 +245,7 @@ detrend w v = let windows = dim v `div` w
 
 -- | resize the vector to length n by resampling
 resize :: S.Filterable a => Int -> Vector a -> Vector a
-resize n v = S.downsample_ (dim v `div` n) v
+resize n v = S.downsample_ (size v `div` n) v
 
 -----------------------------------------------------------------------------
 
@@ -264,7 +266,7 @@ cross_correlation :: S.Filterable a =>
                  -> Vector a -- ^ time series
                  -> Vector a -- ^ result
 cross_correlation l x y = let (sx,sy,r) = S.cross_covariance_ l x y
-                          in mapVector (/ (sx*sy)) r
+                          in GV.map(/ (sx*sy)) r
 
 -- | compute the cross spectrum
 cross_spectrum :: (S.Filterable a, Double ~ DoubleOf a) =>
@@ -291,7 +293,7 @@ auto_correlation :: S.Filterable a =>
                  -> Vector a -- ^ time series
                  -> Vector a -- ^ result
 auto_correlation l v = let (var,r) = auto_covariance l v
-                          in mapVector (/ var) r
+                          in GV.map(/ var) r
 
 -----------------------------------------------------------------------------
 

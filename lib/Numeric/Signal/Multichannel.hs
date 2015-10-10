@@ -6,7 +6,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Signal.Multichannel
--- Copyright   :  (c) Alexander Vivian Hugh McPhail 2010, 2014
+-- Copyright   :  (c) Alexander Vivian Hugh McPhail 2010, 2014, 2015
 -- License     :  BSD3
 --
 -- Maintainer  :  haskell.vivian.mcphail <at> gmail <dot> com
@@ -59,7 +59,9 @@ import Data.Maybe
 
 import Foreign.Storable
 
-import Numeric.LinearAlgebra
+import Numeric.LinearAlgebra hiding(range)
+
+import qualified Data.Vector.Generic as GV
 
 --import qualified Numeric.GSL.Fourier as F
 
@@ -78,7 +80,7 @@ import Control.Monad(replicateM)
 
 instance (Binary a, Storable a) => Binary (Vector a) where
     put v = do
-            let d = dim v
+            let d = GV.length v
             put d
             mapM_ (\i -> put $ v @> i) [0..(d-1)]
     get = do
@@ -114,7 +116,7 @@ instance Binary (Multichannel Double) where
                               put f
                               put $! fmap convert d
         where convert v = let (mi,ma) = (minElement v,maxElement v)
-                              v' = mapVector (\x -> round $ (x - mi)/(ma - mi) * (fromIntegral (maxBound :: Word64))) v
+                              v' = GV.map (\x -> round $ (x - mi)/(ma - mi) * (fromIntegral (maxBound :: Word64))) v
                           in (mi,ma,v' :: Vector Word64) 
 
     get = do
@@ -126,7 +128,7 @@ instance Binary (Multichannel Double) where
           f <- get
           (d :: I.Array Int (Double,Double,Vector Word64)) <- get
           return $! (MC s p c l de f (seq d (fmap convert) d))
-              where convert (mi,ma,v) = mapVector (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word64)) * (ma - mi) + mi) v
+              where convert (mi,ma,v) = GV.map (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word64)) * (ma - mi) + mi) v
 
 instance Binary (Multichannel Float) where
     put (MC s p c l de f d) = do
@@ -138,7 +140,7 @@ instance Binary (Multichannel Float) where
                               put f
                               put $! fmap convert d
         where convert v = let (mi,ma) = (minElement v,maxElement v)
-                              v' = mapVector (\x -> round $ (x - mi)/(ma - mi) * (fromIntegral (maxBound :: Word64))) v
+                              v' = GV.map (\x -> round $ (x - mi)/(ma - mi) * (fromIntegral (maxBound :: Word64))) v
                           in (mi,ma,v' :: Vector Word64) 
 
     get = do
@@ -150,7 +152,7 @@ instance Binary (Multichannel Float) where
           f <- get
           (d :: I.Array Int (Float,Float,Vector Word32)) <- get
           return $! (MC s p c l de f (seq d (fmap convert) d))
-              where convert (mi,ma,v) = mapVector (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word32)) * (ma - mi) + mi) v
+              where convert (mi,ma,v) = GV.map (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word32)) * (ma - mi) + mi) v
 
 instance Binary (Multichannel (Complex Double)) where
     put (MC s p c l de f d) = do
@@ -162,7 +164,7 @@ instance Binary (Multichannel (Complex Double)) where
                               put f
                               put $! fmap ((\(r,j) -> (convert r, convert j)) . fromComplex) d
         where convert v = let (mi,ma) = (minElement v,maxElement v)
-                              v' = mapVector (\x -> round $ (x - mi)/(ma - mi) * (fromIntegral (maxBound :: Word64))) v
+                              v' = GV.map (\x -> round $ (x - mi)/(ma - mi) * (fromIntegral (maxBound :: Word64))) v
                           in (mi,ma,v' :: Vector Word64) 
 
     get = do
@@ -174,7 +176,7 @@ instance Binary (Multichannel (Complex Double)) where
           f <- get
           (d :: I.Array Int ((Double,Double,Vector Word64),(Double,Double,Vector Word64))) <- get
           return $! (MC s p c l de f (seq d (fmap (\(r,j) -> toComplex (convert r,convert j)) d)))
-              where convert (mi,ma,v) = mapVector (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word64)) * (ma - mi) + mi) v
+              where convert (mi,ma,v) = GV.map (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word64)) * (ma - mi) + mi) v
 
 
 
@@ -188,7 +190,7 @@ instance Binary (Multichannel (Complex Float)) where
                               put f
                               put $! fmap ((\(r,j) -> (convert r, convert j)) . fromComplex) d
         where convert v = let (mi,ma) = (minElement v,maxElement v)
-                              v' = mapVector (\x -> round $ (x - mi)/(ma - mi) * (fromIntegral (maxBound :: Word32))) v
+                              v' = GV.map (\x -> round $ (x - mi)/(ma - mi) * (fromIntegral (maxBound :: Word32))) v
                           in (mi,ma,v' :: Vector Word32) 
 
     get = do
@@ -200,7 +202,7 @@ instance Binary (Multichannel (Complex Float)) where
           f <- get
           (d :: I.Array Int ((Float,Float,Vector Word32),(Float,Float,Vector Word32))) <- get
           return $! (MC s p c l de f (seq d (fmap (\(r,j) -> toComplex (convert r,convert j)) d)))
-              where convert (mi,ma,v) = mapVector (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word32)) * (ma - mi) + mi) v
+              where convert (mi,ma,v) = GV.map (\x -> ((fromIntegral x)) / (fromIntegral (maxBound :: Word32)) * (ma - mi) + mi) v
 
 
 
@@ -221,7 +223,7 @@ createMultichannel :: Storable a
                    -> [Vector a]        -- ^ data
                    -> Multichannel a    -- ^ datatype
 createMultichannel s p d = let c = length d
-                 in MC s p c (dim $ head d) False Nothing (I.listArray (1,c) d)
+                 in MC s p c (GV.length $ head d) False Nothing (I.listArray (1,c) d)
 
 -- | the sampling rate
 sampling_rate :: Multichannel a -> Int
@@ -291,7 +293,7 @@ mapConcurrently :: Storable b
                 -> Multichannel a              -- ^ input data
                 -> Multichannel b              -- ^ output data
 mapConcurrently f (MC sr p c _ de fi d) = let d' = mapArrayConcurrently f d
-                                          in MC sr p c (dim $ d' I.! 1) de fi d'
+                                          in MC sr p c (GV.length $ d' I.! 1) de fi d'
 
 -- | map a function
 mapMC :: Storable b 
@@ -299,7 +301,7 @@ mapMC :: Storable b
       -> Multichannel a                        -- ^ input data
       -> Multichannel b                        -- ^ output data
 mapMC f (MC sr p c _ de fi d) = let d' = fmap f d
-                                in MC sr p c (dim $ d' I.! 1) de fi d'
+                                in MC sr p c (GV.length $ d' I.! 1) de fi d'
                                     
 -----------------------------------------------------------------------------
 

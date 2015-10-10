@@ -1,7 +1,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Signal.EEG.BDF
--- Copyright   :  (c) Alexander Vivian Hugh McPhail 2010, 2014
+-- Copyright   :  (c) Alexander Vivian Hugh McPhail 2010, 2014, 2015
 -- License     :  BSD3
 --
 -- Maintainer  :  haskell.vivian.mcphail <at> gmail <dot> com
@@ -25,7 +25,7 @@ import qualified Data.ByteString as BS
 import Data.Word
 import Data.Bits
 --import Data.Array.Storable
-import Data.Packed.Vector
+import Numeric.LinearAlgebra.Data
 
 import qualified Numeric.Signal.Multichannel as M
 
@@ -195,7 +195,7 @@ readData f rs ss = do
                    -- let v = rotate d
                    -- lift $ putStrLn $ "vectors: " ++ (show $ length v)
                    -- lift $ putStrLn $ "slices: " ++ (show $ length $ head v)
-                   return $! map join $! rotate_ d
+                   return $! map vjoin $! rotate_ d
     where rotate_ []            = []
           rotate_ xs@((_:[]):_) = [concat xs]
           rotate_ ((x:xs):xss)  = (x : (map head xss)) : (rotate_ (xs : (map tail xss)))

@@ -6,7 +6,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Signal.Noise
--- Copyright   :  (c) Alexander Vivian Hugh McPhail 2010, 2014
+-- Copyright   :  (c) Alexander Vivian Hugh McPhail 2010, 2014, 2015
 -- License     :  BSD3
 --
 -- Maintainer  :  haskell.vivian.mcphail <at> gmail <dot> com
@@ -45,9 +45,9 @@ module Numeric.Signal.Noise (
 
 --import Foreign.Storable
 
+import Numeric.LinearAlgebra
 
-import Numeric.Container
-import Numeric.LinearAlgebra()
+import qualified Data.Vector.Generic as GV
 
 import qualified Numeric.GSL.Fourier as F
 
@@ -80,14 +80,14 @@ spatialNoise b r' c' s = let c = fromIntegral c'
                              r = fromIntegral r'
                              pre_x = linspace c' (0::Double,c-1)
                              post_x = linspace c' (c,1)
-                             freq_x = mapVector (/c) $ join [pre_x,post_x]
+                             freq_x = GV.map (/c) $ vjoin [pre_x,post_x]
                              u = fromRows (replicate (2*r') freq_x)
                              pre_y = linspace r' (0::Double,r-1)
                              post_y = linspace r' (r,1)
-                             freq_y = mapVector (/c) $ join [pre_y,post_y]
+                             freq_y = GV.map (/c) $ vjoin [pre_y,post_y]
                              v = fromColumns (replicate (2*c') freq_y)
-                             s_f = liftMatrix (mapVector (**(b/2))) ((u**2) + (v**2))
-                             s_f' = liftMatrix (mapVector (\x -> if isInfinite x then 0 else x)) s_f
+                             s_f = cmap (**(b/2)) ((u**2) + (v**2))
+                             s_f' = cmap (\x -> if isInfinite x then 0 else x) s_f
                              phi = reshape (2*c') (randomVector s Uniform (4*r'*c'))
                          in subMatrix (1,1) (r',c') $ fst $ fromComplex $ fromRows $ map F.ifft $ toRows $ ((complex $ s_f'**0.5) * (toComplex (cos(2*pi*phi),sin(2*pi*phi))))
 
@@ -102,9 +102,9 @@ pinkNoise ::
     -> Vector Double 
 pinkNoise b s r = let pre = linspace s (0::Double,fromIntegral (s-1))
                       post = linspace s (fromIntegral s,1)
-                      freq = join [pre/(fromIntegral s),post/(fromIntegral s)]
-                      s_f = mapVector (**(b/2)) (freq**2) 
-                      s_f' = mapVector (\x -> if isInfinite x then 0 else x) s_f
+                      freq = vjoin [pre/(fromIntegral s),post/(fromIntegral s)]
+                      s_f = GV.map (**(b/2)) (freq**2) 
+                      s_f' = GV.map (\x -> if isInfinite x then 0 else x) s_f
                       phi = randomVector r Uniform (2*s)
                   in subVector 0 s $ fst $ fromComplex $ F.ifft ((complex $ s_f'**0.5) * (toComplex (cos(2*pi*phi),sin(2*pi*phi))))
 
@@ -112,7 +112,7 @@ pinkNoise b s r = let pre = linspace s (0::Double,fromIntegral (s-1))
 powerNoise :: Vector Double   -- ^ the power spectrum
            -> Int             -- ^ random seed
            -> Vector Double
-powerNoise psd r = let ln = dim psd
-                       freq = join [fromList [0],psd, (fromList . reverse . tail . toList) psd]
+powerNoise psd r = let ln = GV.length psd
+                       freq = vjoin [fromList [0],psd, (fromList . reverse . tail . toList) psd]
                        phi = randomVector r Uniform (2*ln)
                    in (fromIntegral ln) * (subVector 0 (ln-1) $ fst $ fromComplex $ F.ifft ((complex $ freq) * (toComplex (cos(2*pi*phi),sin(2*pi*phi)))))

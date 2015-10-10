@@ -133,3 +133,6 @@
 
 0.2.7.1:
 		added gsl dependencies to cabal file
+
+0.2.7.2:
+		update for hmatrix 0.17
