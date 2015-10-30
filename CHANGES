@@ -139,3 +139,6 @@
 
 0.2.7.3:
 		removed Config.hs
+
+0.2.7.4:
+		Reduce Setup.lhs
