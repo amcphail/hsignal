@@ -136,3 +136,6 @@
 
 0.2.7.2:
 		update for hmatrix 0.17
+
+0.2.7.3:
+		removed Config.hs

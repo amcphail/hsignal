@@ -3,7 +3,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Signal
--- Copyright   :  (c) Alexander Vivian Hugh McPhail 2010, 2014
+-- Copyright   :  (c) Alexander Vivian Hugh McPhail 2010, 2014, 2015
 -- License     :  BSD3
 --
 -- Maintainer  :  haskell.vivian.mcphail <at> gmail <dot> com
