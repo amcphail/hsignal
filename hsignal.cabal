@@ -1,8 +1,8 @@
 Name:               hsignal
-Version:            0.2.7.4
+Version:            0.2.7.5
 License:            BSD3
 License-file:       LICENSE
-Copyright:          (c) A.V.H. McPhail 2010, 2011, 2014, 2015
+Copyright:          (c) A.V.H. McPhail 2010, 2011, 2014, 2015, 2016
 Author:             Vivian McPhail
 Maintainer:         haskell.vivian.mcphail <at> gmail <dot> com
 Stability:          provisional
@@ -17,7 +17,7 @@ Description:
      .
      Feature requests, suggestions, and bug fixes welcome.
 Category:           Math
-tested-with:        GHC ==7.10.1
+tested-with:        GHC ==8.0.1
 
 cabal-version:      >=1.8
 
@@ -41,10 +41,10 @@ library
                         array,
                         vector,
                         bytestring, storable-complex, binary,
-                        hmatrix >= 0.17,
-                        hmatrix-gsl >= 0.17,
-                        hmatrix-gsl-stats >= 0.4,
-                        hstatistics >= 0.2.5.3
+                        hmatrix >= 0.18,
+                        hmatrix-gsl >= 0.18,
+                        hmatrix-gsl-stats >= 0.4.1.6,
+                        hstatistics >= 0.2.5.4
 
     Extensions:         ForeignFunctionInterface
 

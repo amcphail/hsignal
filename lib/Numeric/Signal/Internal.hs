@@ -4,7 +4,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Signal.Internal
--- Copyright   :  (c) Alexander Vivian Hugh McPhail 2010, 2014, 2015
+-- Copyright   :  (c) Alexander Vivian Hugh McPhail 2010, 2014, 2015, 2016
 -- License     :  BSD3
 --
 -- Maintainer  :  haskell.vivian.mcphail <at> gmail <dot> com
@@ -40,7 +40,7 @@ import System.IO.Unsafe(unsafePerformIO)
 
 -----------------------------------------------------------------------------
 
-infixl 1 #
+infixr 1 #
 a # b = applyRaw a b
 {-# INLINE (#) #-}
 
@@ -62,7 +62,7 @@ class (Storable a, Container Vector a, Num (Vector a)
       , Convert a, Floating (Vector a), RealElement a
       , Num a)
        => Filterable a where
-    -- | conver from Vector Double
+    -- | convert from Vector Double
     fromDouble :: Vector Double -> Vector a
 --       b ~ ComplexOf a, Container Vector b, Convert b) => Filterable a where
     -- | filter a signal
@@ -103,7 +103,7 @@ instance Convolvable (Vector Double) where
 
 convolve_vector_double c a = unsafePerformIO $ do
                              r <- createVector (size a)
-                             signal_vector_double_convolve # c # a # r #| "signalDoubleConvolve"
+                             (c # a # r # id) signal_vector_double_convolve #| "signalDoubleConvolve"
                              return r
 
 foreign import ccall "signal-aux.h vector_double_convolve" signal_vector_double_convolve :: CInt -> PD -> CInt -> PD -> CInt -> PD -> IO CInt
@@ -114,7 +114,7 @@ instance Convolvable (Vector Float) where
 
 convolve_vector_float c a = unsafePerformIO $ do
                              r <- createVector (size a)
-                             signal_vector_float_convolve # c # a # r #| "signalFloatConvolve"
+                             (c # a # r # id ) signal_vector_float_convolve #| "signalFloatConvolve"
                              return r
 
 foreign import ccall "signal-aux.h vector_float_convolve" signal_vector_float_convolve :: CInt -> PF -> CInt -> PF -> CInt -> PF -> IO CInt
@@ -127,7 +127,7 @@ instance Convolvable (Vector (Complex Double)) where
 
 convolve_vector_complex c a = unsafePerformIO $ do
                               r <- createVector (size a)
-                              signal_vector_complex_convolve # c # a # r #| "signalComplexConvolve"
+                              (c # a # r # id) signal_vector_complex_convolve #| "signalComplexConvolve"
                               return r
 
 foreign import ccall "signal-aux.h vector_complex_convolve" signal_vector_complex_convolve :: CInt -> PC -> CInt -> PC -> CInt -> PC -> IO CInt
@@ -170,7 +170,7 @@ filterD :: Vector Double -- ^ zero coefficients
        -> Vector Double -- ^ output signal
 filterD l k v = unsafePerformIO $ do
                r <- createVector (size v)
-               signal_filter_double # l # k # v # r #| "signalFilter"
+               (l # k # v # r # id) signal_filter_double #| "signalFilter"
                return r
 
 foreign import ccall "signal-aux.h filter_double" signal_filter_double :: CInt -> PD -> CInt -> PD -> CInt -> PD -> CInt -> PD -> IO CInt
@@ -182,7 +182,7 @@ filterF :: Vector Float -- ^ zero coefficients
        -> Vector Float -- ^ output signal
 filterF l k v = unsafePerformIO $ do
                r <- createVector (size v)
-               signal_filter_float # l # k # v # r #| "signalFilter"
+               (l # k # v # r # id) signal_filter_float #| "signalFilter"
                return r
 
 foreign import ccall "signal-aux.h filter_float" signal_filter_float :: CInt -> PF -> CInt -> PF -> CInt -> PF -> CInt -> PF -> IO CInt
@@ -194,7 +194,7 @@ hilbert :: Vector Double -> Vector (Complex Double)
 hilbert v = unsafePerformIO $ do
             let r = complex v
             -- could use (complex v) to make a complex vector in haskell rather than C
-            signal_hilbert # r #| "hilbert"
+            (r # id) signal_hilbert #| "hilbert"
             return r
 
 foreign import ccall "signal-aux.h hilbert" signal_hilbert :: CInt -> PC -> IO CInt
@@ -207,7 +207,7 @@ pwelch :: Int            -- ^ window size (multiple of 2)
        -> Vector Double  -- ^ power density  
 pwelch w v = unsafePerformIO $ do
              let r = konst 0.0 ((w `div` 2) + 1)
-             (signal_pwelch $ fromIntegral w) # (complex v) # r #| "pwelch"
+             (complex v # r # id) (signal_pwelch $ fromIntegral w) #| "pwelch"
              return r
 
 foreign import ccall "signal-aux.h pwelch" signal_pwelch :: CInt -> CInt -> PC -> CInt -> PD -> IO CInt
@@ -221,7 +221,7 @@ hammingD l
     | l == 1          = konst 1.0 1
     | otherwise       = unsafePerformIO $ do
                         r <- createVector l
-                        signal_hamming_double # r #| "Hamming"
+                        (r # id) signal_hamming_double #| "Hamming"
                         return r
 
 foreign import ccall "signal-aux.h hamming_double" signal_hamming_double :: CInt -> PD -> IO CInt
@@ -233,7 +233,7 @@ hammingF l
     | l == 1          = konst 1.0 1
     | otherwise       = unsafePerformIO $ do
                         r <- createVector l
-                        signal_hamming_float # r #| "Hamming"
+                        (r # id) signal_hamming_float #| "Hamming"
                         return r
 
 foreign import ccall "signal-aux.h hamming_float" signal_hamming_float :: CInt -> PF -> IO CInt
@@ -273,7 +273,7 @@ polyEval :: Vector Double           -- ^ the real coefficients
          -> Vector (Complex Double) -- ^ the values
 polyEval c z = unsafePerformIO $ do
                r <- createVector (size z)
-               signal_real_poly_complex_eval # c # z # r #| "polyEval"
+               (c # z # r # id) signal_real_poly_complex_eval #| "polyEval"
                return r
 
 foreign import ccall "signal-aux.h real_poly_complex_eval" signal_real_poly_complex_eval :: CInt -> PD -> CInt -> PC -> CInt -> PC -> IO CInt
@@ -285,7 +285,7 @@ complex_powerD :: Vector (Complex Double) -- ^ input
               -> Vector Double           -- ^ output
 complex_powerD v = unsafePerformIO $ do
                   r <- createVector (size v)
-                  signal_complex_power_double # v # r #| "complex_power"
+                  (v # r # id) signal_complex_power_double #| "complex_power"
                   return r
 
 foreign import ccall "signal-aux.h complex_power_double" signal_complex_power_double :: CInt -> PC -> CInt -> PD -> IO CInt
@@ -295,7 +295,7 @@ complex_powerF :: Vector (Complex Double) -- ^ input
               -> Vector Float             -- ^ output
 complex_powerF v = unsafePerformIO $ do
                   r <- createVector (size v)
-                  signal_complex_power_float # v # r #| "complex_power"
+                  (v # r # id) signal_complex_power_float #| "complex_power"
                   return r
 
 foreign import ccall "signal-aux.h complex_power_float" signal_complex_power_float :: CInt -> PC -> CInt -> PF -> IO CInt
@@ -306,7 +306,7 @@ foreign import ccall "signal-aux.h complex_power_float" signal_complex_power_flo
 downsampleD :: Int -> Vector Double -> Vector Double
 downsampleD n v = unsafePerformIO $ do
                r <- createVector (size v `div` n)
-               (signal_downsample_double $ fromIntegral n) # v # r #| "downsample"
+               (v # r # id) (signal_downsample_double $ fromIntegral n) #| "downsample"
                return r
 
 foreign import ccall "signal-aux.h downsample_double" signal_downsample_double :: CInt -> CInt -> PD -> CInt -> PD -> IO CInt
@@ -315,7 +315,7 @@ foreign import ccall "signal-aux.h downsample_double" signal_downsample_double :
 downsampleF :: Int -> Vector Float -> Vector Float
 downsampleF n v = unsafePerformIO $ do
                r <- createVector (size v `div` n)
-               (signal_downsample_float $ fromIntegral n) # v # r #| "downsample"
+               (v # r # id) (signal_downsample_float $ fromIntegral n) #| "downsample"
                return r
 
 foreign import ccall "signal-aux.h downsample_float" signal_downsample_float :: CInt -> CInt -> PF -> CInt -> PF -> IO CInt
@@ -326,7 +326,7 @@ foreign import ccall "signal-aux.h downsample_float" signal_downsample_float :: 
 derivD :: Vector Double -> Vector Double
 derivD v = unsafePerformIO $ do
           r <- createVector (size v - 1)
-          (signal_diff_double) # v # r #| "diff"
+          (v # r # id) (signal_diff_double) #| "diff"
           return r
 
 foreign import ccall "signal-aux.h vector_diff_double" signal_diff_double :: CInt -> PD -> CInt -> PD -> IO CInt
@@ -335,7 +335,7 @@ foreign import ccall "signal-aux.h vector_diff_double" signal_diff_double :: CIn
 derivF :: Vector Float -> Vector Float
 derivF v = unsafePerformIO $ do
           r <- createVector (size v - 1)
-          (signal_diff_float) # v # r #| "diff"
+          (v # r # id) (signal_diff_float) #| "diff"
           return r
 
 foreign import ccall "signal-aux.h vector_diff_float" signal_diff_float :: CInt -> PF -> CInt -> PF -> IO CInt
@@ -346,7 +346,7 @@ foreign import ccall "signal-aux.h vector_diff_float" signal_diff_float :: CInt 
 unwrapD :: Vector Double -> Vector Double
 unwrapD v = unsafePerformIO $ do
            r <- createVector $ size v
-           signal_unwrap_double # v # r #| "unwrap"
+           (v # r # id) signal_unwrap_double #| "unwrap"
            return r
 
 foreign import ccall "signal-aux.h unwrap_double" signal_unwrap_double :: CInt -> PD -> CInt -> PD -> IO CInt
@@ -355,7 +355,7 @@ foreign import ccall "signal-aux.h unwrap_double" signal_unwrap_double :: CInt -
 unwrapF :: Vector Float -> Vector Float
 unwrapF v = unsafePerformIO $ do
            r <- createVector $ size v
-           signal_unwrap_float # v # r #| "unwrap"
+           (v # r # id) signal_unwrap_float #| "unwrap"
            return r
 
 foreign import ccall "signal-aux.h unwrap_float" signal_unwrap_float :: CInt -> PF -> CInt -> PF -> IO CInt
@@ -368,7 +368,7 @@ crossCovarianceD l x y = unsafePerformIO $ do
                            r <- createVector (2*l)
                            alloca $ \sx -> 
                                alloca $ \sy -> do
-                                 (signal_cross_covariance_double (fromIntegral l) sx sy) # x # y # r #| "cross_covariance"
+                                 (x # y # r # id) (signal_cross_covariance_double (fromIntegral l) sx sy) #| "cross_covariance"
                                  sx' <- peek sx
                                  sy' <- peek sy
                                  return (sx',sy',r)
@@ -383,7 +383,7 @@ crossCovarianceF l x y = unsafePerformIO $ do
                            r <- createVector (2*l)
                            alloca $ \sx -> 
                                alloca $ \sy -> do
-                                 (signal_cross_covariance_float (fromIntegral l) sx sy) # x # y # r #| "cross_covariance"
+                                 (x # y # r # id) (signal_cross_covariance_float (fromIntegral l) sx sy) #| "cross_covariance"
                                  sx' <- peek sx
                                  sy' <- peek sy
                                  return (sx',sy',r)
@@ -397,13 +397,13 @@ foreign import ccall "signal-aux.h cross_covariance_float"
 cumSumD :: Vector Double -> Vector Double
 cumSumD v = unsafePerformIO $ do
               r <- createVector (size v)
-              signal_cum_sum_double # v # r #| "cumSumD"
+              (v # r # id) signal_cum_sum_double #| "cumSumD"
               return r
 
 cumSumF :: Vector Float -> Vector Float
 cumSumF v = unsafePerformIO $ do
               r <- createVector (size v)
-              signal_cum_sum_float # v # r #| "cumSumF"
+              (v # r # id) signal_cum_sum_float #| "cumSumF"
               return r
 
 foreign import ccall "signal-aux.h cum_sum_double"

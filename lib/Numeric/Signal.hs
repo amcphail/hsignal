@@ -3,7 +3,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Signal
--- Copyright   :  (c) Alexander Vivian Hugh McPhail 2010, 2014, 2015
+-- Copyright   :  (c) Alexander Vivian Hugh McPhail 2010, 2014, 2015, 2016
 -- License     :  BSD3
 --
 -- Maintainer  :  haskell.vivian.mcphail <at> gmail <dot> com
@@ -94,7 +94,7 @@ pwelch s w v = let w' = max s w -- make window at least sampling rate
 -----------------------------------------------------------------------------
 
 -- | a broadband FIR
-broadband_fir :: (S.Filterable a, Double ~ DoubleOf a, Container Vector (Complex a), Convert (Complex a)) =>
+broadband_fir :: (S.Filterable a, Double ~ DoubleOf a, Convert (Complex a)) =>
                 Int           -- ^ sampling rate
               -> (Int,Int)     -- ^ (lower,upper) frequency cutoff
               -> Vector a -- ^ filter coefficients   
@@ -108,7 +108,7 @@ broadband_fir s (l,h) = let o = 501
                         in standard_fir o be
 
 -- | a broadband filter
-broadband_filter :: (S.Filterable a, Double ~ DoubleOf a, Container Vector (Complex a), Convert (Complex a)) 
+broadband_filter :: (S.Filterable a, Double ~ DoubleOf a) 
                    => Int        -- ^ sampling rate
                  -> (Int,Int)    -- ^ (lower,upper) frequency cutoff
                  -> Vector a            -- ^ input signal
@@ -120,7 +120,7 @@ broadband_filter s f v = let b = S.fromDouble $ broadband_fir s f
 
 -- | standard FIR filter
 -- |   FIR filter with grid a power of 2 greater than the order, ramp = grid/16, hamming window
-standard_fir :: (S.Filterable a, Double ~ DoubleOf a, Container Vector (Complex a), Convert (Complex a)) => 
+standard_fir :: (S.Filterable a, Double ~ DoubleOf a, Convert (Complex a)) => 
                Int -> [(a,a)] -> Vector a
 standard_fir o be = let grid  = calc_grid o
                         trans_ = grid `div` 16
@@ -133,7 +133,7 @@ calc_grid o = let next_power = ceiling (((log $ fromIntegral o) :: Double) / (lo
 
 -- | produce an FIR filter
 fir :: (S.Filterable a
-      , Container Vector (Complex a), Convert (Complex a), Double ~ DoubleOf a) =>
+      , Convert (Complex a), Double ~ DoubleOf a) =>
       Int               -- ^ order (one less than the length of the filter)
     -> [(a,a)] -- ^ band edge frequency, nondecreasing, [0, f1, ..., f(n-1), 1]
                         -- ^ band edge magnitude
@@ -195,7 +195,7 @@ freqzF :: (S.Filterable a, Double ~ DoubleOf a, S.Filterable (DoubleOf a)) =>
 freqzF b a s f = S.freqz b a ((2*pi/(fromIntegral s)) * f)
 
 -- | determine the frequency response of a filter, given a number of points and sampling rate
-freqzN :: (S.Filterable a, Enum a, Double ~ DoubleOf a) =>
+freqzN :: (S.Filterable a, Double ~ DoubleOf a) =>
          Vector a     -- ^ zero coefficients
        -> Vector a       -- ^ pole coefficients
        -> Int     -- ^ sampling rate
@@ -216,8 +216,7 @@ analytic_power :: S.Filterable a => Vector (Complex Double) -> Vector a
 analytic_power = S.complex_power_
 
 -- | the phase of an analytic signal
-analytic_phase :: (S.Filterable a, Container Vector a
-                 ,Double ~ DoubleOf a) => 
+analytic_phase :: (S.Filterable a) => 
                  Vector (Complex a) -> Vector a
 analytic_phase = (uncurry arctan2) . fromComplex
 

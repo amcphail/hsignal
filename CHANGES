@@ -142,3 +142,6 @@
 
 0.2.7.4:
 		Reduce Setup.lhs
+
+0.2.7.5:
+		update for hmatrix 0.18

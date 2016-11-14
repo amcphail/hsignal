@@ -6,7 +6,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Numeric.Signal.Multichannel
--- Copyright   :  (c) Alexander Vivian Hugh McPhail 2010, 2014, 2015
+-- Copyright   :  (c) Alexander Vivian Hugh McPhail 2010, 2014, 2015, 2016
 -- License     :  BSD3
 --
 -- Maintainer  :  haskell.vivian.mcphail <at> gmail <dot> com
@@ -312,7 +312,7 @@ detrend w m = let m' = mapConcurrently (S.detrend w) m
 
 
 -- | filter the data with the given passband
-filter :: (S.Filterable a, Double ~ DoubleOf a, Container Vector (Complex a), Convert (Complex a)) => 
+filter :: (S.Filterable a, Double ~ DoubleOf a) => 
          (Int,Int) -> Multichannel a -> Multichannel a
 filter pb m = let m' = mapConcurrently (S.broadband_filter (_sampling_rate m) pb) m
               in m' { _filtered = Just pb }
